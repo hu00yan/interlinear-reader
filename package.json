@@ -21,6 +21,8 @@
     "deploy:dict:live": "node scripts/deploy-dict.mjs --live",
     "dev:stub": "node scripts/stub-server.mjs",
     "selfcheck": "node scripts/selfcheck-local.mjs",
+    "bench:browser": "node scripts/bench-reader-browser.mjs",
+    "bench:browser:dev": "node scripts/bench-reader-browser.mjs --base=http://127.0.0.1:5173",
     "e2e": "playwright test",
     "e2e:install": "playwright install --with-deps chromium",
     "verify": "node scripts/verify.mjs",

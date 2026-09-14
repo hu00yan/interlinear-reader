@@ -8,6 +8,7 @@ import {
   type Token,
 } from '../types.js';
 import { loadSettings, saveSettings, modeToContractValue, modeFromContractValue, type Settings } from '../store/settings.js';
+
 import { loadLanguagePack } from '../reader/langpack-loader.js';
 import { annotateParagraphs, renderParagraphs, renderSlices, type AnnotatedParagraph } from '../reader/render.js';
 import { tokenizeParagraph } from '../reader/tokenize.js';
@@ -32,7 +33,7 @@ import {
 } from '../reader/paginate.js';
 import { isProperNounSurface } from '../dict/dict-loader.js';
 import { detectParaLang, normalizeLangTag } from '../reader/langdetect.js';
-import { autoSegmentGloss, glossSentence, testConnection } from '../llm/provider.js';
+import { autoSegmentGloss, chunkByChars, glossBatchPage, glossSentence, testConnection } from '../llm/provider.js';
 import { estimateCostUSD, formatUSD } from '../lib/cost.js';
 import { addVocab, isKnown, listVocab, removeVocab, setKnown, exportVocabJSON } from '../vocab/store.js';
 import { parseTxt } from '../ingest/txt.js';
@@ -85,6 +86,42 @@ const fallbackArrByKey = new Map<string, AnnotatedParagraph[]>();
 const autoDetectedLang = new Map<string, string>();
 /** auto 跨页注出缓存（key=书::章::目标::原文段下标；切章清旧，不重复计费） */
 const autoAnnCache = new Map<string, AnnotatedParagraph>();
+/** 全书术语表缓存（session 级；key=`书::源语言::目标`）与在途 Promise（整书只跑一次）。
+ * 用户口径：一本书的上下文最充足；术语表保证同一专名/术语全书译法一致。 */
+const bookGlossaryCache = new Map<string, Record<string, string>>();
+const bookGlossaryInflight = new Map<string, Promise<Record<string, string>>>();
+/** 起一次整书术语表提炼（后台，不挡阅读）；已缓存则直接返回，在途则复用同一 Promise。 */
+function ensureBookGlossary(book: Book, s: Settings, save: () => void): Promise<Record<string, string>> {
+  const key = `${book.title}::${book.lang}::${s.target}`;
+  const got = bookGlossaryCache.get(key);
+  if (got) return Promise.resolve(got);
+  const inflight = bookGlossaryInflight.get(key);
+  if (inflight) return inflight;
+  if (!s.bookGlossary || !s.apiKey) return Promise.resolve({});
+  const p = (async (): Promise<Record<string, string>> => {
+    try {
+      const { extractBookGlossary } = await import('../llm/provider.js');
+      const r = await extractBookGlossary(
+        { baseUrl: s.baseUrl, apiKey: s.apiKey, model: s.model },
+        book.lang,
+        s.target,
+        book.chapters.flatMap((c) => c.paragraphs),
+      );
+      if (Object.keys(r.glossary).length) bookGlossaryCache.set(key, r.glossary);
+      if (r.costUSD > 0) {
+        s.costUsedUSD = +(s.costUsedUSD + r.costUSD).toFixed(4);
+        save();
+      }
+      return r.glossary;
+    } catch {
+      return {}; // 降级：无术语表继续（缺词回填本身仍可用）
+    } finally {
+      bookGlossaryInflight.delete(key);
+    }
+  })();
+  bookGlossaryInflight.set(key, p);
+  return p;
+}
 /**
  * 页脚预留（pager-bottom + cost 行高）：分页发生在它们挂载前，此时 spread 偏高；
  * 预算 = 预挂载列高 - 预留。首绘用默认 76（桌面实测 pager+cost），rAF 收敛环实测修正。
@@ -897,6 +934,10 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
   const s: Settings = state.settings;
   // 本次渲染代际快照（sync() 已递增 readerSeq；旧续体 await 后比对丢弃，防底部 pager 重复）。
   const seq = readerSeq;
+  // 错误语义（带来即消费）：上次 sync 带来的错在本轮显示、本轮清空；
+  // 本轮章节处理中产生的新错在首绘前同步进 errBox；下轮无新错即干净。
+  const carriedError = state.error;
+  state.error = '';
 
   // 控制条（单一工具条）：章节 / 模式 / 目标 / 释义 为主，全屏与导出降为右侧次要组。
   // 注意：验收/e2e 以 `.reader-meta > select` 定位章节与模式下拉，两个 select 必须是 meta 的直接子节点，
@@ -1109,7 +1150,7 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
 
   const errBox = document.createElement('div');
   errBox.className = 'err';
-  if (state.error) errBox.textContent = state.error;
+  if (carriedError) errBox.textContent = carriedError;
   main.appendChild(errBox);
 
   // 分页（长章不能一次全渲染）+ 章间连续翻页：末页下页进下一章首夜，首夜上页回上一章末页
@@ -1140,6 +1181,15 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
   /** 当前页左右列 token 切片（行首切分，无截断无内滚，见 paginate.ts） */
   let leftSlices: FlowSlice[] = [];
   let rightSlices: FlowSlice[] = [];
+  /** A 模式异步回填：首绘时只收集（不等待网络），尾部挂载后批量跑 */
+  let aBackfill: {
+    jobs: { text: string; missing: string[] }[];
+    context: string;
+    pack: Awaited<ReturnType<typeof loadLanguagePack>>;
+    knownFn: (lemma: string) => boolean;
+    glossaryKey: string;
+    glossary: Promise<Record<string, string>>;
+  } | null = null;
   /** 本次分页所用预算/列数/探针输入（rAF 收敛环复用，不重新注出） */
   let capUsedForPaging = 0;
   let columnsUsed: 1 | 2 = 1;
@@ -1726,38 +1776,30 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
       // paragraph. B remains strictly offline; without a key we never call
       // an external provider and keep the visible missing marker.
       if (s.mode === Mode.A && s.apiKey) {
-        const override = new Map<string, Record<string, string>>();
-        let spent = 0;
+        // 只收集本页缺词段落 + 章节上下文，不等待网络：首绘先出正文，
+        // 回填在尾部挂载完成后异步批量跑（单请求多句 + 章节上下文选义）。
+        const jobs: { text: string; missing: string[] }[] = [];
         for (const para of state.annotated) {
-          if (seq !== readerSeq) return;
           const missing = [...new Set(para.tokens.filter((t) => t.isWord && !t.gloss).map((t) => t.lemma))].slice(0, 40);
-          if (missing.length === 0 || s.costUsedUSD + spent >= s.costCapUSD) continue;
-          try {
-            const { glosses, costUSD } = await glossSentence(
-              { baseUrl: s.baseUrl, apiKey: s.apiKey, model: s.model },
-              book.lang, s.target, para.text, missing,
-            );
-            if (Object.keys(glosses).length) override.set(para.text, glosses);
-            spent += costUSD;
-          } catch (e) {
-            state.error = `A 模式补词失败（已保留词典结果）：${(e as Error).message}`;
-            break;
-          }
+          if (missing.length === 0) continue;
+          jobs.push({ text: para.text, missing });
         }
-        if (spent > 0) {
-          s.costUsedUSD = +(s.costUsedUSD + spent).toFixed(4);
-          save();
-          if (seq !== readerSeq) return;
-          const fresh = await annotateParagraphs(pack, book.lang, s.target, slice.map((p) => p.text), knownFn, override);
-          const used = new Map<string, number>();
+        aBackfill = null;
+        if (jobs.length > 0) {
+          const ois: number[] = [];
           for (const p of slice) {
-            const list = fresh.filter((f) => f.text === p.text);
-            const n = used.get(p.text) ?? 0;
-            const rep = list[n];
-            used.set(p.text, n + 1);
-            if (rep) p.tokens = rep.tokens;
+            const fi = renderFlow.indexOf(p);
+            const oi = fi >= 0 && fi < flowOrig.length ? flowOrig[fi] : -1;
+            if (oi >= 0) ois.push(oi);
           }
-          state.annotated = slice;
+          let context = '';
+          if (ois.length) {
+            const lo = Math.max(0, Math.min(...ois) - 8);
+            const hi = Math.min(paragraphs.length, Math.max(...ois) + 9);
+            context = paragraphs.slice(lo, hi).join('\n');
+            if (context.length > 4000) context = context.slice(0, 4000) + '…';
+          }
+          aBackfill = { jobs, context, pack, knownFn, glossaryKey: `${book.title}::${book.lang}::${s.target}`, glossary: ensureBookGlossary(book, s, save) };
         }
       }
       }
@@ -1873,6 +1915,8 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
       body.setAttribute('data-page', String(state.page));
       return { left, right };
     };
+    // 本轮章节处理中产生的新错（C 模式等）在首绘前同步进 errBox。
+    if (state.error) errBox.textContent = state.error;
     paintedCols = paintColumns?.() ?? null;
     // 自检：行级算术应保证零溢出；>2px 即记 warn（浏览器证据口径，不做静默修正）。
     checkColumns = (): number => {
@@ -2037,6 +2081,88 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
       sync();
     });
     main.appendChild(exit);
+  }
+  // A 模式缺词回填（首绘之后异步跑，不挡正文）：整页缺句一次批量请求 +
+  // 章节上下文选义；成功就地补 gloss 重画列/统计，整页全失败才挂红条（直接写 errBox，不重渲染）。
+  if (aBackfill && aBackfill.jobs.length > 0) {
+    const backfill = aBackfill;
+    aBackfill = null;
+    void (async () => {
+      const mySeq = seq;
+      try {
+        const override = new Map<string, Record<string, string>>();
+        let spent = 0;
+        let lastErr = '';
+        // 等术语表就绪（首访整书一次，约数秒；不挡首绘，只推迟回填），
+        // 保证第一页起专名/术语全书一致；失败/超时则空表继续。
+        let glossary: Record<string, string> = bookGlossaryCache.get(backfill.glossaryKey) ?? {};
+        if (!Object.keys(glossary).length) {
+          try {
+            glossary = await backfill.glossary;
+          } catch {
+            glossary = {};
+          }
+        }
+        if (mySeq !== readerSeq) return;
+        // 上下文自适应切块：按字符预算装（默认 6000 字符，约 1.5k~2k token），
+        // 而不是固定句数——短句可多带、长句自然独占一批，尽量把上下文塞满一次请求。
+        const budget = 6000;
+        const batches = chunkByChars(backfill.jobs, (j) => j.text.length + j.missing.join(',').length, budget);
+        let base = 0;
+        for (const ck of batches) {
+          if (mySeq !== readerSeq) return;
+          if (s.costUsedUSD + spent >= s.costCapUSD) break;
+          const idBase = base;
+          base += ck.length;
+          try {
+            const r = await glossBatchPage(
+              { baseUrl: s.baseUrl, apiKey: s.apiKey, model: s.model },
+              book.lang, s.target, backfill.context,
+              ck.map((j, i) => ({ id: `s${idBase + i}`, text: j.text, lemmas: j.missing })),
+              fetch,
+              { glossary },
+            );
+            ck.forEach((j, i) => {
+              const g = r.glosses.get(`s${idBase + i}`);
+              if (g && Object.keys(g).length) override.set(j.text, g);
+            });
+            spent += r.costUSD;
+          } catch (e) {
+            lastErr = (e as Error).message;
+          }
+        }
+        if (mySeq !== readerSeq) return;
+        if (override.size === 0) {
+          if (lastErr) {
+            state.error = `A 模式补词失败（已保留词典结果）：${lastErr}`;
+            errBox.textContent = state.error;
+          }
+          return;
+        }
+        s.costUsedUSD = +(s.costUsedUSD + spent).toFixed(4);
+        save();
+        if (mySeq !== readerSeq) return;
+        const fresh = await annotateParagraphs(backfill.pack, book.lang, s.target, slice.map((p) => p.text), backfill.knownFn, override);
+        const used = new Map<string, number>();
+        for (const p of slice) {
+          const list = fresh.filter((f) => f.text === p.text);
+          const n = used.get(p.text) ?? 0;
+          const rep = list[n];
+          used.set(p.text, n + 1);
+          if (rep) p.tokens = rep.tokens;
+        }
+        state.annotated = slice;
+        if (mySeq !== readerSeq) return;
+        paintedCols = paintColumns?.() ?? paintedCols;
+        paintNotice?.();
+        cost.innerHTML =
+          `费用 ${formatUSD(s.costUsedUSD)} / 上限 $${s.costCapUSD}` +
+          `<span class="lbl-ext">${book.lang === 'auto' ? ' · Auto 纯 LLM 分词+注 · key 仅存 localStorage' : ' · key 仅存 localStorage'}</span>`;
+        updatePagerChrome?.();
+      } catch {
+        // 首绘已出，回填失败静默（整页全失败已在上挂条）。
+      }
+    })();
   }
   // chrome 微调 + 收敛环：pager/cost/notice 终稿挂载后列高落定；预算漂移>2px 则按锚点重排，
   // 最多修正 2 次（重排只换列内容，chrome 高度不变，故必收敛；释义文本不影响盒高，无需重复注出）。
@@ -2371,6 +2497,8 @@ function renderSettings(main: HTMLElement, sync: () => void): void {
   base.addEventListener('change', () => {
     s.baseUrl = base.value.trim() || s.baseUrl;
     save();
+    state.error = '';
+    sync();
   });
   const key = document.createElement('input');
   key.type = 'password';
@@ -2380,6 +2508,7 @@ function renderSettings(main: HTMLElement, sync: () => void): void {
   key.addEventListener('change', () => {
     s.apiKey = key.value.trim();
     save();
+    state.error = '';
     sync();
   });
   const model = document.createElement('input');
@@ -2388,6 +2517,8 @@ function renderSettings(main: HTMLElement, sync: () => void): void {
   model.addEventListener('change', () => {
     s.model = model.value.trim() || s.model;
     save();
+    state.error = '';
+    sync();
   });
   card.append(field('Base URL', base), field('API Key（只存本机）', key), field('Model', model));
 
@@ -2545,6 +2676,7 @@ function renderSettings(main: HTMLElement, sync: () => void): void {
     field('模式 A/B/C', modeSel),
     mkCheck('隐藏停用词释义', () => s.hideStopwords, (v) => (s.hideStopwords = v)),
     mkCheck('隐藏已认识词释义', () => s.hideKnown, (v) => (s.hideKnown = v)),
+    mkCheck('全书术语表（整书一次，提升专名/术语一致性）', () => s.bookGlossary, (v) => (s.bookGlossary = v)),
   );
   const capRow = document.createElement('div');
   capRow.className = 'row';

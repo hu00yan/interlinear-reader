@@ -4,3 +4,5 @@ artifacts/*.log
 artifacts/playwright.json
 test-results/
 playwright-report/
+.DS_Store
+.wrangler/

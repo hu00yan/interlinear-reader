@@ -81,12 +81,14 @@ export function sha1Sync(text: string): string {
   return [h0, h1, h2, h3, h4].map((h) => (h >>> 0).toString(16).padStart(8, '0')).join('');
 }
 
-/** 词级缓存键：sha1(lang|target|lemma|)（句部分为空） */
+/** 词级缓存键：sha1(lang|target|lemma|)（句部分为空）。
+ * 同步纯 JS SHA1（与 SubtleCrypto 同值，见上）：逐词查词是热路径，
+ * 省掉每词一次 subtle.digest 的异步调度。签名保持 async（调用方与契约不变）。 */
 export async function wordCacheKey(lang: string, target: string, lemma: string): Promise<string> {
-  return sha1Hex(`${lang}|${target}|${normalizeSentence(lemma, lang)}|`);
+  return sha1Sync(`${lang}|${target}|${normalizeSentence(lemma, lang)}|`);
 }
 
-/** 句级缓存键：sha1(lang|target||归一化句)（lemma 部分为空） */
+/** 句级缓存键：sha1(lang|target||归一化句)（lemma 部分为空；同上，同步计算） */
 export async function sentenceCacheKey(lang: string, target: string, sentence: string): Promise<string> {
-  return sha1Hex(`${lang}|${target}||${normalizeSentence(sentence, lang)}`);
+  return sha1Sync(`${lang}|${target}||${normalizeSentence(sentence, lang)}`);
 }

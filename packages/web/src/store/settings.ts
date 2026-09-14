@@ -17,6 +17,8 @@ export interface Settings {
   /** 词频过滤：只隐藏词频排名前 N 的词的释义（0=关闭）。真词频表由 Track C 提供，此处为启发式占位。 */
   freqHideTopN: number;
   pageSize: number;
+  /** 全书术语表：整书跑一次 LLM 提炼专名/术语固定译法，提升同一词在全书的一致性（有 key 时生效，一次性费用）。 */
+  bookGlossary: boolean;
 }
 
 const KEY = 'ilr.settings.v1';
@@ -54,6 +56,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hideKnown: false,
   freqHideTopN: 0,
   pageSize: 20,
+  bookGlossary: true,
 };
 
 export function loadSettings(): Settings {

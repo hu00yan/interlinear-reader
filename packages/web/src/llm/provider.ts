@@ -5,7 +5,7 @@
 import type { SourceLang, TargetLang } from '../types.js';
 import { sentenceCacheKey } from '../lib/hash.js';
 import { sentenceMemGet, sentenceMemSet } from '../lib/cache.js';
-import { estimateCostUSD } from '../lib/cost.js';
+import { estimateCostUSD, estimateTokens } from '../lib/cost.js';
 
 export interface ProviderConfig {
   baseUrl: string;
@@ -72,6 +72,162 @@ export async function glossSentence(
   sentenceMemSet(key, glosses);
   const costUSD = estimateCostUSD(sys + user, raw);
   return { glosses, raw, costUSD };
+}
+
+/** 整页/整章批量释义：一次请求带多句 + 上下文（一词多义靠上下文选义）。
+ * 与 glossSentence 同缓存口径（句键含 lemmas），命中句不发网；返回 id->lemma->gloss。
+ *
+ * 上下文自适应（用户口径：一本书的上下文最充足，但长书一次装不下）：
+ * - `context` 为局部上文（当前页/章附近，成本低、必带）；
+ * - `glossary` 为全书术语表（书名/专名/作者自造词 → 固定译法），整书提炼一次、分块复用；
+ * - 调用方按 `chunkBudget` 自适应切块（见 chunkByChars），先塞满预算再发下一批。 */
+export interface BatchSentence {
+  id: string;
+  text: string;
+  lemmas: string[];
+}
+
+export interface BatchOptions {
+  /** 全书术语表（term -> 固定译法）：保证同一专名全书一致。 */
+  glossary?: Record<string, string>;
+  /** 单次请求的上下文字符预算（正文+上下文），超出即切块。 */
+  maxChars?: number;
+}
+
+/** 按累计字符预算切块：单句超预算时独占一块（不切句，保证句内上下文完整）。 */
+export function chunkByChars<T>(items: T[], sizeOf: (t: T) => number, maxChars: number): T[][] {
+  const out: T[][] = [];
+  let cur: T[] = [];
+  let n = 0;
+  for (const it of items) {
+    const s = sizeOf(it);
+    if (cur.length && n + s > maxChars) {
+      out.push(cur);
+      cur = [];
+      n = 0;
+    }
+    cur.push(it);
+    n += s;
+  }
+  if (cur.length) out.push(cur);
+  return out;
+}
+
+export async function glossBatchPage(
+  cfg: ProviderConfig,
+  lang: SourceLang,
+  target: TargetLang,
+  context: string,
+  sentences: BatchSentence[],
+  fetchFn: typeof fetch = fetch,
+  options: BatchOptions = {},
+): Promise<{ glosses: Map<string, Record<string, string>>; raw: string; costUSD: number }> {
+  const out = new Map<string, Record<string, string>>();
+  const pending = [];
+  for (const s of sentences) {
+    if (!cfg.apiKey) throw new ProviderError('缺少 API Key（设置页填写，仅存 localStorage）');
+    const key = await sentenceCacheKey(lang, target, s.text + '‖' + s.lemmas.join(','));
+    const mem = sentenceMemGet(key);
+    if (mem) {
+      const picked: Record<string, string> = {};
+      for (const l of s.lemmas) if (mem[l] !== undefined) picked[l] = mem[l];
+      out.set(s.id, picked);
+    } else {
+      pending.push(s);
+    }
+  }
+  if (pending.length === 0) return { glosses: out, raw: '', costUSD: 0 };
+
+  const targetName = target === 'zh' ? '简体中文' : 'simple English';
+  const glossary = options.glossary ?? {};
+  const glossaryTerms = Object.keys(glossary);
+  const sys =
+    `You are a dictionary for language learners. Source language: ${lang}. ` +
+    `A CHAPTER excerpt is given for context only (do not gloss it). ` +
+    `Gloss each requested lemma in ${targetName}, very short (1-4 words/字). ` +
+    `Use the chapter context to pick the correct sense of polysemous words. ` +
+    (glossaryTerms.length
+      ? `This book has an established glossary — use these fixed renderings whenever the term appears: ` +
+        `${JSON.stringify(glossary)}. `
+      : '') +
+    `Use the requested lemma strings EXACTLY as given as the JSON keys — never correct, ` +
+    `re-spell, normalize, or replace them. ` +
+    `Return ONLY a JSON object mapping sentence id to {lemma: gloss}. No markdown, no extra text.`;
+  const user = JSON.stringify({
+    chapter: context,
+    sentences: pending.map((s) => ({ id: s.id, text: s.text, lemmas: s.lemmas })),
+  });
+
+  const url = `${cleanBase(cfg.baseUrl)}/chat/completions`;
+  let resp: Response;
+  try {
+    resp = await fetchFn(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cfg.apiKey}` },
+      body: JSON.stringify({ model: cfg.model, messages: [{ role: 'system', content: sys }, { role: 'user', content: user }], temperature: 0 }),
+    });
+  } catch (e) {
+    throw new ProviderError(`网络请求失败（浏览器直调）：${(e as Error).message}`);
+  }
+  if (!resp.ok) throw new ProviderError(`LLM ${resp.status}：${(await resp.text()).slice(0, 300)}`, resp.status);
+  const data = (await resp.json()) as ChatResponse;
+  const raw = data.choices?.[0]?.message?.content?.trim() ?? '';
+  const parsed = parseBatchJson(raw);
+  for (const s of pending) {
+    // 键对齐：模型偶尔把 lemma 回写成自然拼写（如请求 borborygmu 却回 borborygmus，
+    // 词典包的过剥形与原形差一个后缀），此处按请求词表把返回键对回原 lemma，
+    // 否则 annotateParagraphs 按 t.lemma 取值会整页 miss。
+    const got = alignGlossKeys(parsed.get(s.id) ?? {}, s.lemmas);
+    out.set(s.id, got);
+    if (Object.keys(got).length) {
+      const key = await sentenceCacheKey(lang, target, s.text + '‖' + s.lemmas.join(','));
+      sentenceMemSet(key, got);
+    }
+  }
+  const costUSD = estimateCostUSD(sys + user, raw);
+  return { glosses: out, raw, costUSD };
+}
+
+/** 把模型返回的释义键对回请求的 lemma 词表（精确 > 忽略大小写 > 前缀互为包含）。
+ * 命中的原键同时保留，正文侧 lemma/surface 两种取值都能命中。 */
+export function alignGlossKeys(input: Record<string, string>, lemmas: string[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  const lc = new Map<string, string>();
+  for (const l of lemmas) if (l) lc.set(l.toLowerCase(), l);
+  for (const [k, v] of Object.entries(input)) {
+    if (!v) continue;
+    let key = k;
+    const lk = k.toLowerCase();
+    if (!lc.has(lk)) {
+      for (const l of lemmas) {
+        const ll = l.toLowerCase();
+        // 过剥形 borborygmu 与自然形 borborygmus 互为前缀；len>=4 防短词误配
+        if (ll.length >= 4 && (lk.startsWith(ll) || ll.startsWith(lk))) {
+          key = l;
+          break;
+        }
+      }
+    }
+    out[key] = v;
+    if (key !== k) out[k] = v;
+  }
+  return out;
+}
+
+function parseBatchJson(raw: string): Map<string, Record<string, string>> {
+  const cleaned = raw.replace(/^```json\s*|^```\s*|```$/gm, '').trim();
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start < 0 || end <= start) throw new ProviderError(`LLM 返回非 JSON：${raw.slice(0, 200)}`);
+  const obj = JSON.parse(cleaned.slice(start, end + 1)) as Record<string, unknown>;
+  const out = new Map<string, Record<string, string>>();
+  for (const [id, v] of Object.entries(obj)) {
+    if (v === null || typeof v !== 'object' || Array.isArray(v)) continue;
+    const m: Record<string, string> = {};
+    for (const [k, g] of Object.entries(v as Record<string, unknown>)) m[k] = String(g).slice(0, 60);
+    out.set(id, m);
+  }
+  return out;
 }
 
 /** 单词点查（Mode A 点词）：复用 glossSentence，lemmas=[lemma] */
@@ -299,4 +455,160 @@ function parseGlossJson(raw: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(obj)) out[k] = String(v).slice(0, 60);
   return out;
+}
+
+// ---------------- 全书术语表（用户口径：一本书的上下文最充足） ----------------
+
+/** 拿不到 /models 元数据时的保守上下文窗口（tokens）。 */
+export const DEFAULT_CONTEXT_TOKENS = 32768;
+/** 术语表产出预留（输出 tokens）：避免 context - output 溢出。 */
+const GLOSSARY_RESERVE_TOKENS = 4096;
+
+/** 取模型上下文窗口（tokens）。GET {base}/models 按 id 精确匹配，其次按 id 前缀匹配；
+ * 拿不到返回 null（调用方用 DEFAULT_CONTEXT_TOKENS）。 */
+export async function fetchModelContext(
+  cfg: ProviderConfig,
+  fetchFn: typeof fetch = fetch,
+): Promise<number | null> {
+  try {
+    const resp = await fetchFn(`${cleanBase(cfg.baseUrl)}/models`, {
+      headers: { Authorization: `Bearer ${cfg.apiKey}` },
+    });
+    if (!resp.ok) return null;
+    const data = (await resp.json()) as unknown;
+    const list = (data as { data?: unknown }).data;
+    if (!Array.isArray(list)) return null;
+    const entries = list.filter(
+      (m): m is { id?: unknown; context_length?: unknown } => m !== null && typeof m === 'object',
+    );
+    const pick = (m: { id?: unknown; context_length?: unknown }): number | null =>
+      typeof m.context_length === 'number' && m.context_length > 0 ? m.context_length : null;
+    const exact = entries.find((m) => m.id === cfg.model);
+    if (exact) {
+      const c = pick(exact);
+      if (c) return c;
+    }
+    const prefixed = entries.find((m) => typeof m.id === 'string' && m.id.startsWith(cfg.model));
+    if (prefixed) {
+      const c = pick(prefixed);
+      if (c) return c;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** 按 token 预算切块：尽量填满（用户口径“能填 200K 就填到 200K”）。
+ * 段落粒度优先（不切断句内上下文）；单段超预算时按字符硬切。 */
+export function chunkByTokenBudget(
+  paragraphs: string[],
+  budgetTokens: number,
+): string[][] {
+  const out: string[][] = [];
+  let cur: string[] = [];
+  let n = 0;
+  const pushCur = (): void => {
+    if (cur.length) {
+      out.push(cur);
+      cur = [];
+      n = 0;
+    }
+  };
+  for (const p of paragraphs) {
+    const text = p.trim();
+    if (!text) continue;
+    const t = estimateTokens(text);
+    if (t > budgetTokens) {
+      pushCur();
+      // 单段超预算：按字符数近似切（保留段落边界语义，仅对超长段硬切）
+      const perChar = estimateTokens('x'.repeat(100)) / 100;
+      const maxChars = Math.max(200, Math.floor(budgetTokens / Math.max(perChar, 0.01)));
+      for (let i = 0; i < text.length; i += maxChars) out.push([text.slice(i, i + maxChars)]);
+      continue;
+    }
+    if (cur.length && n + t > budgetTokens) pushCur();
+    cur.push(text);
+    n += t;
+  }
+  pushCur();
+  return out;
+}
+
+export interface BookGlossaryResult {
+  glossary: Record<string, string>;
+  chunks: number;
+  costUSD: number;
+  contextTokens: number | null;
+  /** 每块真正用到的 token 预算（诊断用：是否填满上下文） */
+  budgetTokens: number;
+}
+
+/** 全书术语表：把整本书按上下文预算切块（能填满就填满），逐块提炼并合并。
+ * 产物供 glossBatchPage({glossary}) 使用，保证同一专名/术语全书译法一致。
+ * 失败策略：单块失败跳过（lastErr 记原因），已有块的结果仍返回；
+ * 全部失败且无结果时抛最后一个错误，调用方决定是否降级为“无术语表继续”。 */
+export async function extractBookGlossary(
+  cfg: ProviderConfig,
+  lang: SourceLang,
+  target: TargetLang,
+  paragraphs: string[],
+  opts: {
+    maxContextTokens?: number;
+    reserveTokens?: number;
+    onProgress?: (done: number, total: number) => void;
+    fetchFn?: typeof fetch;
+    signal?: AbortSignal;
+  } = {},
+): Promise<BookGlossaryResult> {
+  if (!cfg.apiKey) throw new ProviderError('缺少 API Key（设置页填写，仅存 localStorage）');
+  const fetchFn = opts.fetchFn ?? fetch;
+  const contextTokens = opts.maxContextTokens ?? (await fetchModelContext(cfg, fetchFn)) ?? DEFAULT_CONTEXT_TOKENS;
+  const budgetTokens = Math.max(1024, contextTokens - (opts.reserveTokens ?? GLOSSARY_RESERVE_TOKENS));
+  const chunks = chunkByTokenBudget(paragraphs, budgetTokens);
+  const targetName = target === 'zh' ? '简体中文' : 'simple English';
+  const sys =
+    `You are a terminology extractor for a ${lang} book being read with interlinear glosses. ` +
+    `Extract the book's glossary: proper nouns (people, places, gods, artefacts), archaic or unusual words, ` +
+    `and recurring key terms. For each, give ONE short fixed rendering in ${targetName} (1-6 words/字). ` +
+    `Prefer renderings that stay consistent across the whole book. ` +
+    `Return ONLY a JSON object {term: rendering}. No markdown, no commentary.`;
+  const glossary: Record<string, string> = {};
+  let costUSD = 0;
+  let lastErr: unknown;
+  let done = 0;
+  for (const chunk of chunks) {
+    if (opts.signal?.aborted) break;
+    const user = JSON.stringify({ book: chunk.join('\n\n') });
+    try {
+      const resp = await fetchFn(`${cleanBase(cfg.baseUrl)}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cfg.apiKey}` },
+        body: JSON.stringify({
+          model: cfg.model,
+          messages: [
+            { role: 'system', content: sys },
+            { role: 'user', content: user },
+          ],
+          temperature: 0,
+        }),
+        signal: opts.signal,
+      });
+      if (!resp.ok) throw new ProviderError(`LLM ${resp.status}：${(await resp.text()).slice(0, 200)}`, resp.status);
+      const data = (await resp.json()) as ChatResponse;
+      const raw = data.choices?.[0]?.message?.content?.trim() ?? '';
+      // 合并：先到先得（首块看到的译法更可能来自书名/开篇的规范表述）
+      for (const [k, v] of Object.entries(parseGlossJson(raw))) {
+        if (glossary[k] === undefined && k.trim()) glossary[k] = v;
+      }
+      costUSD += estimateCostUSD(sys + user, raw);
+    } catch (e) {
+      if (opts.signal?.aborted) break;
+      lastErr = e;
+    }
+    done += 1;
+    opts.onProgress?.(done, chunks.length);
+  }
+  if (Object.keys(glossary).length === 0 && lastErr) throw lastErr;
+  return { glossary, chunks: chunks.length, costUSD, contextTokens, budgetTokens };
 }
