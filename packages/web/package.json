@@ -13,7 +13,8 @@
     "make:fixture": "node scripts/make-fixture.mjs"
   },
   "dependencies": {
-    "jszip": "^3.10.1"
+    "jszip": "^3.10.1",
+    "marked": "^18.0.13"
   },
   "devDependencies": {
     "@types/jsdom": "^30.0.0",

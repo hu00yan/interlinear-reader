@@ -55,12 +55,15 @@ check('epub 标题', book.title === 'Hello Reader', book.title);
 // 2. TXT / URL 提取
 const txt = parseTxt('Time and people find a way.\n\nThe man reads.', 't.txt', 'en');
 check('txt 分段=2', txt.chapters[0].paragraphs.length === 2);
-// md 预剥离：链接/代码/URL 不进正文
-const md = parseTxt('# Title\n\nSee [Time](https://example.com/t) and `code`.\n\n```js\nconst x = 1;\n```\n\nVisit https://example.com raw.\n', 'n.md', 'en');
+// md 走 marked 词法解析（懒加载，见 ingest/markdown.ts）：链接/代码/URL 不进正文
+const { parseMarkdown } = await import('../src/ingest/markdown.js');
+const md = await parseMarkdown('# Title\n\nSee [Time](https://example.com/t) and `code`.\n\n```js\nconst x = 1;\n```\n\nVisit https://example.com raw.\n\n| a | b |\n|---|---|\n| Time | way |\n\n> quoted Time\n', 'n.md', 'en');
 const mdText = md.chapters[0].paragraphs.join('\n');
 check('md 去链接URL', !mdText.includes('example.com') && mdText.includes('Time'), mdText.slice(0, 80));
 check('md 去围栏代码', !mdText.includes('const x'), mdText.slice(0, 80));
 check('md 标题入正文', mdText.includes('Title'), mdText.slice(0, 40));
+check('md 表格转文本', mdText.includes('Time') && mdText.includes('way'), mdText.slice(0, 120));
+check('md 引用入正文', mdText.includes('quoted'), mdText.slice(0, 120));
 const art = extractArticle('<html><body><article><p>' + 'word '.repeat(30) + '</p><p>short</p></article></body></html>');
 check('url 正文提取过滤短段', art.length === 1, `got ${art.length}`);
 

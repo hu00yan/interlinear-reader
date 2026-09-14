@@ -362,8 +362,11 @@ function renderLibrary(main: HTMLElement, sync: () => void): void {
     try {
       const book = /\.epub$/i.test(f.name)
         ? await (await import('../ingest/epub.js')).parseEpub(f, lang)
-        // 上传与脚本同一条 parseTxt 链：编码先解码（UTF-8 严格→GBK→1252），再 parseTxt
-        : parseTxt(await decodeTextFile(f), f.name, lang);
+        // .md 走 marked 词法解析（懒加载分片）；.txt 同一条 parseTxt 链。
+        // 编码先解码（UTF-8 严格→GBK→1252），再解析。
+        : /\.md$/i.test(f.name)
+          ? await (await import('../ingest/markdown.js')).parseMarkdown(await decodeTextFile(f), f.name, lang)
+          : parseTxt(await decodeTextFile(f), f.name, lang);
       state.book = book;
       state.chapterIdx = 0;
       state.page = 0;

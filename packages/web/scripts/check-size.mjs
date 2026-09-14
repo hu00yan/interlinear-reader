@@ -31,7 +31,7 @@ const rows = files.map((f) => {
   return { f, raw: buf.length, gzip: gzipSync(buf).length };
 });
 // 首屏 = index 入口 chunk（排除 lang-dict / epub / llm / url-ingest 懒加载块）
-const lazy = /lang-dict|epub|llm|url-ingest/;
+const lazy = /lang-dict|epub|llm|url-ingest|markdown|marked/;
 const first = rows.filter((r) => !lazy.test(r.f));
 const total = first.reduce((a, r) => a + r.gzip, 0);
 console.log('--- chunks (gzip) ---');

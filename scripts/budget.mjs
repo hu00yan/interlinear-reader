@@ -15,7 +15,7 @@ import { gzipSync } from "node:zlib";
 import { TRACK_B_LANGS } from "../packages/dict-loader/src/shard.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const LAZY_RE = /lang-dict|epub|llm|url-ingest/;
+const LAZY_RE = /lang-dict|epub|llm|url-ingest|markdown|marked/;
 
 export const BUDGETS = {
   firstScreenJsGzip: 60 * 1024, // owner: packages/web/scripts/check-size.mjs
