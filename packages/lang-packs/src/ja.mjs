@@ -186,9 +186,9 @@ const E_ROW = { け: "く", げ: "ぐ", せ: "す", て: "つ", ね: "ぬ", べ:
 const O_ROW = { こ: "く", ご: "ぐ", そ: "す", と: "つ", の: "ぬ", ぼ: "ぶ", も: "む", ろ: "る" };
 // て形语干 -> 辞書形尾：っ/ん 多解并列，词典命中决定。
 const TE_MAP = {
-  い: ["く"], ち: ["つ"], み: ["む"], び: ["ぶ"], に: ["ぬ"],
+  い: ["く", "ぐ"], ち: ["つ"], み: ["む"], び: ["ぶ"], に: ["ぬ"],
   き: ["く"], ぎ: ["ぐ"], し: ["す"],
-  っ: ["る", "く", "う"], ん: ["む", "ぬ", "ぶ"],
+  っ: ["つ", "る", "く", "う"], ん: ["む", "ぬ", "ぶ"],
 };
 // ます语干 -> 辞書形尾：い行只有洗う类（う）与いる（居る）并列，词典命中决定。
 const MASU_MAP = {
@@ -210,6 +210,8 @@ function mapFinal(remainder, table, appendRu) {
 function auCandidates(remainder) {
   if (!remainder) return [];
   const last = remainder[remainder.length - 1];
+  // 单字さ行（され/させ→さ）是する系，不是五段：先 する。
+  if (remainder.length === 1 && "さしすせそ".includes(last)) return ["する"];
   if (A_ROW[last]) return [remainder.slice(0, -1) + A_ROW[last]];
   return [remainder + "る"];
 }
@@ -246,8 +248,12 @@ const CHAIN_RULES = [
   ["ず", "NAI"],
   // 命令/可能系表层：ろ→+る；け→く；ける→く（開ける原形优先已保）
   ["ろ", "RU"], ["け", "EU1"], ["ける", "KU"],
-  // 推量：よう→+る；おう→お段映射（書こう→書く，会おう→会う）
-  ["よう", "RU"], ["おう", "OU"],
+  // 推量：よう→+る；各行お段（こう/ごう/そう/とう/のう/ぼう/もう/ろう→OU，
+  // 書こう→書く）+ 裸おう（買おう→買う，会おう→会う）
+  ["よう", "RU"],
+  ["こう", "OU"], ["ごう", "OU"], ["そう", "OU"], ["とう", "OU"],
+  ["のう", "OU"], ["ぼう", "OU"], ["もう", "OU"], ["ろう", "OU"],
+  ["おう", "OU"],
   // 可能/被动/使役：a 段映射（書かれる→書く，食べられる→食べる）
   ["させられる", "AU"], ["させます", "AU"], ["させた", "AU"], ["させない", "AU"],
   ["させよう", "AU"], ["させろ", "AU"], ["させる", "AU"], ["される", "AU"],
@@ -284,6 +290,8 @@ function applyMode(remainder, mode) {
       const last = remainder[remainder.length - 1];
       const mapped = TE_MAP[last];
       const teOut = mapped ? mapped.map((m) => remainder.slice(0, -1) + m) : [remainder + "る"];
+      // し尾可能是サ変复合（勉強した→勉強する），+す之后再试 +する。
+      if (last === "し") teOut.push(remainder.slice(0, -1) + "する");
       // 单字语干（いた→い）：て形映射之外再试 +る（いる/きる/しる…），词典命中决定。
       if (remainder.length === 1 && /[぀-ヿｦ-ﾟ]/.test(remainder) && !teOut.includes(remainder + "る")) teOut.push(remainder + "る");
       return teOut;
@@ -291,8 +299,12 @@ function applyMode(remainder, mode) {
     case "EU": {
       if (!remainder) return [];
       const last = remainder[remainder.length - 1];
-      if (E_ROW[last]) return [remainder.slice(0, -1) + E_ROW[last]];
-      return [remainder + "る"];
+      // +る永远第一（開ければ→開ける；旧序先出 E_ROW 会把開ければ判成開く——真词串味，
+      // 比缺词坏得多），e 段映射次之，け尾再试 +い（高ければ→高い）。
+      const euOut = [remainder + "る"];
+      if (E_ROW[last]) euOut.push(remainder.slice(0, -1) + E_ROW[last]);
+      if (last === "け") euOut.push(remainder.slice(0, -1) + "い");
+      return euOut;
     }
     case "EU1": {
       if (!remainder) return [];
@@ -300,13 +312,25 @@ function applyMode(remainder, mode) {
     }
     case "KU": {
       if (!remainder) return [];
-      return [remainder.slice(0, -2) + "く"];
+      // ける吸掉け后常剩单字语干（書ける→書）：短干直接 +く，长干两种都试。
+      const kuOut = [remainder + "く"];
+      if (remainder.length >= 2) kuOut.unshift(remainder.slice(0, -2) + "く");
+      return kuOut;
     }
     case "OU": {
       if (!remainder) return [];
       const last = remainder[remainder.length - 1];
-      if (O_ROW[last]) return [remainder.slice(0, -1) + O_ROW[last]];
-      return [remainder + "う"];
+      const ouOut = [];
+      // 推量（書こう→書く，o 段映射）与す尾被动（起こされる→起こす）同形，两个都试。
+      if (O_ROW[last]) ouOut.push(remainder.slice(0, -1) + O_ROW[last]);
+      ouOut.push(remainder + "す");
+      if (/[一-鿿㐀-䶿]/.test(last)) {
+        for (const e of ["く", "ぐ", "つ", "ぬ", "ぶ", "む", "う"]) {
+          const c = remainder + e;
+          if (!ouOut.includes(c)) ouOut.push(c);
+        }
+      } else if (!O_ROW[last]) ouOut.push(remainder + "う");
+      return ouOut;
     }
     case "ADJI":
       return remainder && remainder.length >= 1 ? [remainder + "い"] : [];
@@ -351,6 +375,7 @@ const KURU_TAILS = [
   "来ます", "来ました", "来ません", "来ましょう",
   "来た", "来て", "来ない", "来なかった", "来なければ", "来たい", "来たら", "来れば", "来よう", "来い", "来させる", "来られる",
   "きます", "きました", "きません", "きました", "きた", "きて", "きない", "きたい", "きたら", "きれば", "きよう",
+  "こない", "こなかった", "こなければ", "こさせる", "こられる", "こよう", "こい", "こさせる",
 ];
 
 export function deinflectJa(token) {
@@ -366,7 +391,16 @@ export function deinflectJa(token) {
   // 名词（事/本）产出的候选在词典里不存在，自然落选。
   const renyoukei = (stem) => {
     if (!stem) return;
-    if (stem.endsWith("っ") && stem.length >= 1) push(stem.slice(0, -1) + "つ");
+    // 促音/拨音语干：っ→つ/う/る/く（待っ→待つ、買っ→買う、帰っ→帰る），
+    // ん→ぬ/む/ぶ（死ん→死ぬ、読ん→読む、呼ん→呼ぶ）。词典命中决定。
+    if (stem.endsWith("っ") && stem.length >= 1) {
+      const base = stem.slice(0, -1);
+      for (const e of ["つ", "う", "る", "く"]) push(base + e);
+    }
+    if (stem.endsWith("ん") && stem.length >= 2) {
+      const base = stem.slice(0, -1);
+      for (const e of ["ぬ", "む", "ぶ"]) push(base + e);
+    }
     for (const c of applyMode(stem, "MASUU")) push(c);
     // 五段未然以外的行：漢字語干补全行尾（聞→聞く、話→話す、立→立つ…），
     // う/い/しい前置（思う/高い/嬉しい常见），词典命中决定一切。
@@ -391,6 +425,8 @@ export function deinflectJa(token) {
     }
   }
   if (SURU_BARE.has(t)) push("する");
+  // 裸サ変使役/被动（させる/される…）：链式 remainder 为空产不出，原形只能是 する。
+  if (["させる", "される", "させられる", "させろ", "させよう", "させます", "させた", "させない", "させたい"].includes(t)) push("する");
   // 来る系
   for (const tail of KURU_TAILS) {
     if (t.length >= tail.length && t.endsWith(tail)) {
@@ -411,7 +447,12 @@ export function deinflectJa(token) {
     }
   }
   // 链式无产出（裸语干/单字）才走連用形兜底，保证精确候选永远在前、不被截断。
-  // 已像辞書形（う段/る/い结尾：見る/書く/高い）的不猜——原形优先已查过。
-  if (!out.length && !/[うくぐすつぬぶむるい]$/.test(t)) renyoukei(t);
+  // 已像辞書形（う段/る结尾：見る/書く）的不猜——原形优先已查过；
+  // 唯一例外 く尾：なく/高く是副词形，试 -く+い（ない/高い），原形書く不受影响
+  // （lemma 优先命中，猜测只在 miss 后用）。
+  if (!out.length) {
+    if (/く$/.test(t) && t.length >= 2) push(t.slice(0, -1) + "い");
+    else if (!/[うぐすつぬぶむるい]$/.test(t)) renyoukei(t);
+  }
   return out.slice(0, 14);
 }

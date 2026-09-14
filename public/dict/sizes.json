@@ -25,18 +25,18 @@
     "shards": 2,
     "pairStats": {
       "zh": {
-        "entries": 91,
-        "dictBytes": 1143,
-        "brBytes": 590
+        "entries": 101,
+        "dictBytes": 1271,
+        "brBytes": 654
       },
       "en": {
         "entries": 465541,
-        "dictBytes": 26149723,
-        "brBytes": 6668337
+        "dictBytes": 26149747,
+        "brBytes": 6668403
       }
     },
-    "jsonBytes": 26150866,
-    "brBytes": 6668927,
+    "jsonBytes": 26151018,
+    "brBytes": 6669057,
     "gzBytes": 0
   },
   "de": {
