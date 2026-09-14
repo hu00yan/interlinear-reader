@@ -1,0 +1,25 @@
+{
+  "name": "@interlinear/web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "node scripts/copy-dict.mjs && tsc --noEmit && vite build && node scripts/check-size.mjs",
+    "build:only": "vite build",
+    "preview": "vite preview",
+    "check:size": "node scripts/check-size.mjs",
+    "verify": "esbuild scripts/verify-track-a.ts --bundle --platform=node --format=esm --outfile=node_modules/.cache/ilr-verify.mjs --external:jsdom --external:jszip --log-level=error && node node_modules/.cache/ilr-verify.mjs",
+    "make:fixture": "node scripts/make-fixture.mjs"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "@types/jsdom": "^30.0.0",
+    "@types/node": "^22.20.2",
+    "jsdom": "^30.0.1",
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0"
+  }
+}

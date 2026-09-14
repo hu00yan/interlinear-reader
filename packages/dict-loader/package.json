@@ -1,0 +1,13 @@
+{
+  "name": "@interlinear/dict-loader",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Shard lazy-load + IndexedDB cache + miss marking for Track C LLM fallback.",
+  "main": "./src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./cache": "./src/cache.mjs",
+    "./shard": "./src/shard.mjs",
+    "./coverage": "./src/coverage.mjs"
+  }
+}

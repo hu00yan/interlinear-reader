@@ -1,0 +1,864 @@
+/* =============================================================================
+   Interlinear Reader — 设计系统（阅读优先：一张安静的纸）
+   -----------------------------------------------------------------------------
+   改之前先读这三条几何契约，越界会让分页算术失准（满页溢出/每页只装一段）：
+
+   1. `.book-page` 的**纵向 padding 是分页预算的硬编码耦合**：
+      paginate.ts `getColumnContentHeight()` 用 `spread.clientHeight - (24|28)`
+      算列内容盒高（24=移动 12*2，28=桌面 14*2）。这两个数字必须与本文件一致，
+      否则每页预算偏差整整一个 padding。横向 padding 不受限（由 DOM 实测）。
+      另有 PAGE_SAFETY_PX=4（JS 侧另扣，CSS 不动）：行盒小数高度在真实列内
+      按整像素累积取整，8 段一页可累出约 2.5px 溢出，余量覆盖它。
+   2. `.book-spread` 自身 **padding 必须为 0**（预算读它的 clientHeight，
+      padding 会被算进去）。外围留白一律用 margin。
+      两列之间的 `border-left` 必须恰好 1px（探针宽度按 (clientWidth-1)/2 取）。
+   3. 隐藏测量探针是 `.book-page.measure-probe`，段落直接挂在它下面；真实列则多
+      一层 `[data-testid="reader"]` 包裹。给列加样式时只能用后代选择器
+      （`.book-page .para`），不能用子选择器（`.book-page > .para`），并且包裹层
+      的盒模型必须保持全 0（见下方 reader 包裹层锁定规则），否则探针与真实列不等高。
+
+   其余（字号/行高/词块内边距/释义宽度）都由探针在真实 DOM 上实测，可自由调整。
+   ============================================================================= */
+
+/* ---------------------------------------------------------------- 设计 tokens */
+:root {
+  /* 纸 / 桌面 / 卡面 */
+  --desk: #eeebe4;
+  --paper: #fffefb;
+  --paper-spine: #f4f0e7;
+  --surface: #fffefb;
+  --surface-bar: #f7f4ee;
+  --surface-hi: #f1ede4;
+  /* 墨色阶梯（--ink-3 在纸上 4.9:1，小字可用；--ink-faint 仅装饰） */
+  --ink: #22201d;
+  --ink-2: #45423c;
+  --ink-3: #6a665e;
+  --ink-faint: #9c968c;
+  /* 线 */
+  --rule: #e3ded4;
+  --rule-strong: #cdc6b8;
+  /* 强调色：书卷青（正文蓝会与释义抢注意力） */
+  --accent: #2f6b5f;
+  --accent-hi: #26564d;
+  --accent-soft: #e7efec;
+  --accent-line: #a9c8c1;
+  --sel: #dfeeea;
+  /* 释义语义色：词典=石板灰蓝，LLM=紫，缺词=淡（另有 "—"/虚线，不靠颜色单独表意） */
+  --gloss: #57657a;
+  --gloss-llm: #6a4bab;
+  --gloss-missing: #a9a49b;
+  --known: rgba(47, 107, 95, .2);
+  --danger: #a2352a;
+  --danger-soft: #fbeeec;
+  --focus: #1d6fd0;
+  /* 强调色上的文字（深浅模式要各自反相，否则「开始阅读」这类实心按钮只有 2:1） */
+  --on-accent: #fffefb;
+  /* 排版 */
+  --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-read: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia,
+    'Songti SC', 'Noto Serif CJK SC', 'Source Han Serif SC', serif;
+  /* 尺度 */
+  --r-s: 7px;
+  --r-m: 10px;
+  --r-l: 14px;
+  --tap: 34px;
+  --tabbar: calc(52px + env(safe-area-inset-bottom, 0px));
+  --shadow-1: 0 1px 2px rgba(40, 32, 18, .05);
+  --shadow-page: 0 1px 2px rgba(40, 32, 18, .05), 0 14px 32px -20px rgba(40, 32, 18, .35);
+  --shadow-sheet: 0 -2px 6px rgba(40, 32, 18, .05), 0 -24px 48px -24px rgba(40, 32, 18, .4);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --desk: #101114;
+    --paper: #1a1c20;
+    --paper-spine: #15171a;
+    --surface: #1c1e23;
+    --surface-bar: #17191d;
+    --surface-hi: #24272d;
+    --ink: #e9e5dd;
+    --ink-2: #c6c1b7;
+    --ink-3: #9b968d;
+    --ink-faint: #7c776f;
+    --rule: #2d3037;
+    --rule-strong: #3d414a;
+    --accent: #7dc0b1;
+    --accent-hi: #96d0c2;
+    --accent-soft: #1e2a28;
+    --accent-line: #35524c;
+    --sel: #223230;
+    --gloss: #9fb0c6;
+    --gloss-llm: #b49ae8;
+    --gloss-missing: #6f6a62;
+    --known: rgba(125, 192, 177, .22);
+    --danger: #e2887d;
+    --danger-soft: #2a1d1b;
+    --focus: #7fb2ff;
+    --on-accent: #10201c;
+    --shadow-page: 0 1px 2px rgba(0, 0, 0, .4), 0 14px 32px -20px rgba(0, 0, 0, .8);
+    --shadow-sheet: 0 -24px 48px -24px rgba(0, 0, 0, .9);
+  }
+}
+@media (min-width: 900px) {
+  :root { --tabbar: 0px; }
+}
+
+/* ------------------------------------------------------------------ 基础排版 */
+* { box-sizing: border-box; }
+html {
+  /* 非阅读页由文档滚动：预留滚动槽，避免切 Tab 时整页左右跳动。滚动条细化但不隐藏。 */
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: var(--rule-strong) transparent;
+}
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--desk);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  -webkit-text-size-adjust: 100%;
+}
+::selection { background: var(--sel); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--rule-strong); border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-track { background: transparent; }
+h1, h2, h3 { font-weight: 650; letter-spacing: -.01em; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; animation-iteration-count: 1 !important; }
+}
+
+/* --------------------------------------------------------------- 应用骨架 */
+/* #app 是两行网格：第一行 chrome（品牌 + 导航），第二行内容。
+   DOM 顺序恒为 topbar → main → tabs；桌面把 tabs 排到 chrome 行右侧（顶部导航），
+   移动端把 tabs 取出常规流固定在底部（拇指可达）。
+   焦点顺序：先阅读区再导航（Tab 不用先跑完四个页签）。桌面上 tabs 视觉在顶部、
+   焦点却在末尾，这是有意取舍：阅读工具条是高频操作，导航低频（tabs 带 aria-label，
+   活页带 aria-current，屏读可直接跳 landmark）。 */
+#app {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  /* 行高必须显式写死：auto/auto 在定高容器里会被 align-content:stretch 平分剩余空间，
+     顶栏会莫名变成半屏高。 */
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas: 'bar' 'view';
+  min-height: 100dvh;
+  padding-bottom: var(--tabbar);
+}
+.topbar { grid-area: bar; }
+#main { grid-area: view; min-width: 0; padding: 18px clamp(14px, 3vw, 28px) 28px; }
+.tabs { grid-area: nav; }
+@media (min-width: 900px) {
+  #app {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'bar nav' 'view view';
+  }
+}
+/* 非阅读页（书架/生词/设置）：单栏可读宽度，正常文档滚动 */
+#app:not(:has(.book-spread)) #main { max-width: 900px; margin-inline: auto; width: 100%; }
+
+/* 阅读页 = 固定视口书页：外壳不制造整页滚动，翻页由行级分页负责（reader/paginate.ts）。 */
+#app:has(.book-spread) {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+#app:has(.book-spread) #main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 10px clamp(10px, 2vw, 22px) 8px;
+  gap: 8px;
+}
+#app:has(.book-spread) #main .book-spread { flex: 1 1 0; min-height: 200px; }
+/* 阅读块对齐：页脚与书页同宽同居中（不让翻页按钮飘到屏幕两侧） */
+#app:has(.book-spread) #main > .pager,
+#app:has(.book-spread) #main > .reader-status,
+#app:has(.book-spread) #main > .reader-meta { width: 100%; max-width: 1360px; margin-inline: auto; }
+#app:has(.book-spread) .book-page { height: 100%; min-height: 0; }
+
+/* 全屏阅读：只留书页与页脚（顶栏/导航/工具条全藏，书页占满视口） */
+.reader-fullscreen #app { padding-bottom: 0; }
+.reader-fullscreen #app > .topbar,
+.reader-fullscreen #app > .tabs,
+.reader-fullscreen #app .reader-meta { display: none; }
+.reader-fullscreen #app:has(.book-spread) #main {
+  padding: 6px 10px;
+  gap: 4px;
+}
+.reader-fullscreen #app:has(.book-spread) #main > .pager,
+.reader-fullscreen #app:has(.book-spread) #main > .reader-status,
+.reader-fullscreen #app:has(.book-spread) #main > .reader-meta {
+  width: 100%;
+  max-width: none;
+  margin-inline: auto;
+}
+.reader-fullscreen .book-spread {
+  max-width: none;
+  border-radius: 0;
+  border-left: 0;
+  border-right: 0;
+}
+/* 全屏悬浮退出：平时不存在，全屏时右上角悬浮（工具条已藏，这是唯一鼠标出口） */
+.fs-exit { display: none; }
+.reader-fullscreen .fs-exit {
+  display: inline-flex;
+  position: fixed;
+  top: 10px;
+  right: 12px;
+  z-index: 40;
+  opacity: .55;
+}
+.reader-fullscreen .fs-exit:hover { opacity: 1; }
+
+/* ------------------------------------------------------------------ 顶栏 */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 10px 14px;
+  flex-wrap: wrap;
+  min-height: 52px;
+  padding: 8px clamp(14px, 3vw, 28px);
+  background: var(--surface-bar);
+  border-bottom: 1px solid var(--rule);
+}
+.brand { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 12px;
+  line-height: 1;
+  flex: none;
+}
+/* 绿标是 button（回书架）：压掉全局 button 的边框/高/内边距，保持 22px 实心标 */
+button.brand-mark {
+  border-color: transparent;
+  min-height: 0;
+  padding: 0;
+}
+button.brand-mark:hover {
+  background: var(--accent-hi);
+  color: var(--on-accent);
+}
+.topbar h1 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+/* 当前书是顶栏的主角（书名 > 应用名） */
+.book-id { display: flex; align-items: baseline; gap: 8px; min-width: 0; flex: 1 1 auto; }
+.book-id .book-title {
+  font-family: var(--font-read);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.book-id .book-langs { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+.topbar .badges { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-left: auto; }
+@media (max-width: 899px) {
+  /* 窄屏顶栏只留一行：书名优先。应用名在有书时让位；模式/目标徒章与工具条重复，隐藏。 */
+  .topbar { min-height: 46px; padding: 7px 14px; gap: 8px; }
+  .topbar:has(.book-id) h1 { display: none; }
+  .topbar:has(.book-id) .badges { display: none; }
+  .book-id .book-title { font-size: 16px; }
+}
+.badge {
+  font-size: 11px;
+  line-height: 1.6;
+  border: 1px solid var(--rule);
+  border-radius: 99px;
+  padding: 1px 9px;
+  color: var(--ink-3);
+  background: var(--surface);
+  white-space: nowrap;
+}
+.badge.llm { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
+
+/* ----------------------------------------------------------------- 标签导航 */
+.tabs {
+  display: flex;
+  align-items: stretch;
+  background: var(--surface-bar);
+  z-index: 20;
+}
+.tabs button {
+  flex: 1;
+  border: 0;
+  background: none;
+  padding: 10px 6px;
+  min-height: var(--tap);
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink-3);
+  cursor: pointer;
+  border-radius: 0;
+}
+.tabs button:hover { color: var(--ink); background: var(--surface-hi); }
+.tabs button.active { color: var(--accent); font-weight: 600; }
+@media (max-width: 899px) {
+  /* 移动：底部 Tab 栏（固定，安全区内） */
+  .tabs {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-top: 1px solid var(--rule);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .tabs button.active { box-shadow: inset 0 2px 0 var(--accent); }
+}
+@media (min-width: 900px) {
+  /* 桌面：导航回到顶栏右侧，底部不再占一条（阅读区因此高出 52px） */
+  .tabs { padding: 0 clamp(14px, 3vw, 28px) 0 0; align-items: center; gap: 2px; border-bottom: 1px solid var(--rule); }
+  .tabs button { flex: none; padding: 6px 12px; min-height: 30px; border-radius: 99px; }
+  .tabs button.active { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent-line); }
+}
+
+/* ------------------------------------------------------------------- 控件 */
+button, select, input, textarea { font-family: inherit; }
+select,
+input[type=text], input[type=url], input[type=password], input[type=number], textarea {
+  font-size: 14px;
+  min-height: var(--tap);
+  padding: 6px 10px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-s);
+  max-width: 100%;
+}
+textarea { padding: 8px 10px; line-height: 1.5; resize: vertical; }
+select {
+  appearance: none;
+  padding-right: 28px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-3) 50%), linear-gradient(135deg, var(--ink-3) 50%, transparent 50%);
+  background-position: right 13px center, right 8px center;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+select:hover, input:hover, textarea:hover { border-color: var(--ink-faint); }
+input::placeholder, textarea::placeholder { color: var(--ink-faint); }
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 500;
+  min-height: var(--tap);
+  padding: 5px 12px;
+  color: var(--ink-2);
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-s);
+  cursor: pointer;
+  transition: background-color .12s ease, color .12s ease, border-color .12s ease;
+}
+button:hover { color: var(--ink); background: var(--surface-hi); }
+button.primary { background: var(--accent); color: var(--on-accent); border-color: transparent; font-weight: 600; }
+button.primary:hover { background: var(--accent-hi); color: var(--on-accent); }
+button.ghost { background: none; border-color: transparent; color: var(--ink-3); }
+button.ghost:hover { background: var(--surface-hi); color: var(--ink); }
+button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-line); }
+button.danger { color: var(--danger); border-color: var(--rule-strong); }
+button.danger:hover { background: var(--danger-soft); border-color: var(--danger); }
+button:disabled { opacity: .38; cursor: not-allowed; }
+@media (max-width: 899px) {
+  :root { --tap: 38px; }
+}
+
+/* -------------------------------------------------------------- 卡片/表单 */
+.card {
+  border: 1px solid var(--rule);
+  border-radius: var(--r-l);
+  padding: 16px;
+  margin: 0 0 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+.card > b:first-child, .card-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 12px 0 0; }
+.row:last-child { margin-bottom: 0; }
+.muted { color: var(--ink-3); font-size: 13px; line-height: 1.55; }
+.card > .muted { max-width: 68ch; }
+.err {
+  color: var(--danger);
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.err:empty { display: none; }
+#main > .err:not(:empty) {
+  padding: 8px 12px;
+  border: 1px solid var(--danger);
+  border-radius: var(--r-s);
+  background: var(--danger-soft);
+}
+.field { display: flex; flex-direction: column; align-items: stretch; gap: 4px; margin: 12px 0 0; }
+.field > span { font-size: 12px; color: var(--ink-3); }
+/* 表单控件不跟着卡片拉到全宽（输入一行文本不需要 900px） */
+.field > input, .field > select { max-width: 460px; }
+.inline-label { font-size: 13px; color: var(--ink-3); }
+.grow { flex: 1 1 200px; min-width: 180px; }
+.row.stretch { align-items: stretch; }
+/* 多行输入旁的按钮跟随输入框底边，不要被拉成整块高度 */
+.row.stretch > button { align-self: flex-end; }
+/* 窄屏：粘贴框独占一行，按钮落到下方（否则输入框只剩半屏宽） */
+@media (max-width: 599px) {
+  .row.stretch > textarea { flex: 1 1 100%; }
+  .row.stretch > button { align-self: flex-start; }
+}
+.num { width: 92px; }
+.file-input {
+  max-width: 260px;
+  font-size: 12.5px;
+  padding: 4px;
+  color: var(--ink-3);
+  background: var(--surface-bar);
+}
+.file-input::file-selector-button {
+  font: inherit;
+  font-weight: 600;
+  margin-right: 8px;
+  padding: 5px 10px;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-s);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.file-input::file-selector-button:hover { border-color: var(--accent); color: var(--accent); }
+.status-line { margin-top: 12px; }
+.result-block { margin-top: 12px; display: grid; gap: 3px; }
+label.set {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 14px;
+  margin: 10px 0 0;
+  min-height: var(--tap);
+  color: var(--ink-2);
+  cursor: pointer;
+}
+label.set input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); }
+/* 空状态：书架无书 / 生词本为空 / 阅读页无书 */
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  text-align: center;
+  padding: 48px 20px;
+  border: 1px dashed var(--rule-strong);
+  border-radius: var(--r-l);
+  background: var(--surface);
+  color: var(--ink-3);
+}
+.empty .empty-mark { font-size: 30px; line-height: 1; opacity: .8; }
+.empty strong { font-size: 16px; color: var(--ink); font-weight: 650; }
+.empty .muted { max-width: 42ch; }
+.empty button { margin-top: 8px; }
+
+/* ------------------------------------------------------- 阅读页工具条/目录 */
+.reader-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 0;
+}
+.reader-meta > select { max-width: 48vw; }
+/* 窄屏标签后半截（全屏「阅读」/ 导出「EPUB」/ 目录「· 第X/Y章」/ 费用口径说明） */
+@media (max-width: 899px) {
+  .lbl-ext { display: none; }
+  .reader-meta { gap: 6px; }
+  .reader-meta > select { max-width: 40vw; font-size: 13px; }
+  .reader-meta > button, .chapter-fold > summary { padding-inline: 10px; }
+}
+.reader-meta > select[data-testid="chapter-select"] { flex: 0 1 auto; min-width: 0; }
+/* 次要动作（全屏/导出）推到右侧，视觉降级 */
+.tool-group { display: flex; gap: 6px; align-items: center; margin-left: auto; }
+.tool-group button { color: var(--ink-3); }
+
+/* 章目录：收起时是一枚 chip；展开为浮层（绝对定位，不挤压书页 → 展开不触发重排分页） */
+.chapter-fold { position: relative; margin: 0; }
+.chapter-fold > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  list-style: none;
+  padding: 5px 11px;
+  min-height: var(--tap);
+  box-sizing: border-box;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-s);
+  white-space: nowrap;
+}
+.chapter-fold > summary:hover { color: var(--ink); background: var(--surface-hi); }
+.chapter-fold > summary::-webkit-details-marker { display: none; }
+.chapter-fold[open] > summary { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
+.chapter-list {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0;
+}
+.chapter-fold .chapter-list {
+  position: absolute;
+  z-index: 25;
+  top: calc(100% + 6px);
+  left: 0;
+  width: max-content;
+  max-width: min(560px, 86vw);
+  max-height: 46vh;
+  overflow: auto;
+  padding: 10px;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-m);
+  box-shadow: var(--shadow-page);
+}
+/* details 收起时 UA 的 display:none 会被上面的 display:flex 覆盖，需显式隐藏（否则默认收起失效） */
+.chapter-fold:not([open]) .chapter-list { display: none; }
+.chapter-list button { font-size: 12.5px; padding: 4px 10px; min-height: 30px; }
+.chapter-list button[aria-current="true"] {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: transparent;
+  font-weight: 600;
+}
+
+/* ------------------------------------------------------------ 书页（阅读面） */
+/* 真正的书页对开：每次翻页只占一个视口，页内无滚动（行级分页算术精确，满页不溢出）。
+   例外 data-overflow="single-para" 只留作单 token 超整页高的物理不可达兜底（行高恒远小于页高，
+   正常阅读永不触发），overflow:auto 规则保留仅为兼容旧验收口径。
+   注意：padding 恒为 0（见文件头契约 2），外围留白用 margin。 */
+.book-spread {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  position: relative;
+  min-height: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 1360px;
+  margin-inline: auto;
+  border: 1px solid var(--rule);
+  border-radius: var(--r-l);
+  background: var(--paper);
+  box-shadow: var(--shadow-page);
+  overflow: hidden;
+}
+.book-page {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  /* 纵向 14px 与 paginate.ts 的 28（=14*2）锁死，见文件头契约 1 */
+  padding: 14px clamp(16px, 3.4vw, 56px);
+  color: var(--ink);
+}
+.book-page[data-overflow="single-para"] { overflow: auto; }
+/* 书脊：分隔线必须恰好 1px（探针宽度按 (clientWidth-1)/2 取），阴影用渐变不占宽 */
+.book-page + .book-page { margin-top: 0; border-left: 1px solid var(--rule); }
+.book-page-left { background: linear-gradient(to right, var(--paper) 92%, var(--paper-spine) 100%); }
+.book-page-right { background: linear-gradient(to left, var(--paper) 92%, var(--paper-spine) 100%); }
+/* reader 包裹层锁定：真实列比探针多这一层，盒模型必须全 0（见文件头契约 3） */
+.book-page > [data-testid="reader"] { display: block; margin: 0; padding: 0; border: 0; }
+@media (max-width: 899px) {
+  .book-spread { border-radius: var(--r-m); grid-template-columns: 1fr; }
+  /* 纵向 12px 与 paginate.ts 的 24（=12*2）锁死 */
+  .book-page { padding: 12px clamp(12px, 4vw, 22px); }
+  .book-page-right { display: none; }
+  .book-page-left { background: var(--paper); }
+}
+/* 首绘占位（注释中…）：绝对定位居中，不进列内文流，不影响分页几何 */
+.book-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 10px;
+  justify-items: center;
+  color: var(--ink-3);
+  font-size: 13px;
+  background: var(--paper);
+}
+.book-loading::before {
+  content: '';
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--rule-strong);
+  border-top-color: var(--accent);
+  animation: ilr-spin .9s linear infinite;
+}
+@keyframes ilr-spin { to { transform: rotate(1turn); } }
+
+/* 隐藏测量器：与 .book-page 同宽同字体同盒模型（BFC，overflow:hidden 使首段 padding 不塌陷，
+   与真实列完全一致），屏外测高，不可见不占布局。探针宽度由 JS 设为可见列 border-box - 1px。 */
+.measure-probe { position: absolute; left: -10000px; top: 0; visibility: hidden; pointer-events: none;
+  overflow: hidden; height: auto; min-height: 0; }
+
+/* 边沟点翻：书页左右沿的透明翻页带（hover/focus 才显形，不遮挡验收选择器） */
+.page-gutter {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: transparent;
+  font-size: 20px;
+  z-index: 5;
+  cursor: pointer;
+  transition: background-color .15s ease, color .15s ease;
+}
+.page-gutter.prev { left: 0; }
+.page-gutter.next { right: 0; }
+.page-gutter:hover, .page-gutter:focus-visible {
+  color: var(--ink-3);
+  background: linear-gradient(to right, rgba(47, 107, 95, .07), transparent);
+}
+.page-gutter.next:hover, .page-gutter.next:focus-visible {
+  background: linear-gradient(to left, rgba(47, 107, 95, .07), transparent);
+}
+.page-gutter:disabled { display: none; }
+@media (max-width: 899px) {
+  .page-gutter { width: 30px; font-size: 17px; }
+}
+
+/* ------------------------------------------------------- 逐词对照（正文） */
+/* 段盒用 padding 做纵向节奏（margin 会塌陷导致“探针算术高 ≠ 真实列高”，满页必溢出 ~14px）。
+   .para 高度 = padding-top + 行盒 + padding-bottom，全在盒内，位置算术精确。 */
+.para {
+  line-height: 2.1;
+  margin: 0;
+  padding: 10px 0 14px;
+  break-inside: avoid-column;
+}
+/* 跳页续排分片：段被行级分页拆开时，去掉断裂边的 padding，使分片盒高与探针算术一致 */
+.para.cont-top { padding-top: 0; }
+.para.cont-bottom { padding-bottom: 0; }
+/* 列上下沿的段一律不留外沿 padding（分页算术的硬要求，不只是视觉）：
+   paginate.ts 的页高口径是「首行 token 顶 → 末行 token 底」（groupLines 只看 token 矩形），
+   外沿 padding 不在其中。分页切点落在段边界时真实列会比预算多出这段 padding
+   （实测 320px 宽下溢出 16px、静默被 overflow:hidden 截掉）。段间距仍由相邻两段的
+   padding 叠加提供；列内留白由 .book-page 自身 padding 负责。探针同样命中本规则，
+   而它只会整体平移首行基准（装箱取相对值），不影响行间几何。 */
+.book-page .para:first-child { padding-top: 0; }
+.book-page .para:last-child { padding-bottom: 0; }
+/* 探针非词包裹：纯中性 inline，与匿名文本节点断行一致 */
+.wsep { display: inline; padding: 0; margin: 0; border: 0; font: inherit; }
+/* 词块：无底色（整页 200 个灰色色块是噪音），靠“上原文/下释义”的对照结构自成秩序；
+   可点性由 hover/选中态表达。盒模型改动都会被探针实测，不影响分页算术。 */
+.tok, .token {
+  display: inline-block;
+  vertical-align: top;
+  text-align: center;
+  margin: 1px 2px;
+  padding: 1px 3px;
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+  line-height: 1.5;
+  break-inside: avoid;
+  transition: background-color .1s ease;
+}
+.tok:hover, .token:hover { background: var(--surface-hi); }
+/* 已认识：细底线（青调），不抢视线也不靠颜色单独表意（另有 hideKnown 过滤） */
+.tok.known, .token.known { box-shadow: inset 0 -2px 0 var(--known); }
+.tok.selected, .token.tapped { background: var(--sel); outline: 1px solid var(--accent); }
+.tok .surface, .token .surface {
+  display: block;
+  font-family: var(--font-read);
+  font-size: 18px;
+  color: var(--ink);
+}
+.tok .gloss, .token .gloss {
+  display: block;
+  font-size: 11.5px;
+  color: var(--gloss);
+  max-width: 104px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tok .gloss.hidden-gloss, .token .gloss.hidden-gloss { color: var(--ink-faint); }
+.tok .gloss.missing, .token .gloss.missing { color: var(--gloss-missing); }
+/* 专名缺词：仍 .missing（B 契约不变），另加虚线底边区分普通缺词 */
+.tok.proper .gloss.missing, .token.proper .gloss.missing { border-bottom: 1px dashed var(--gloss-missing); }
+.tok.proper, .token.proper { outline: 1px dotted transparent; }
+.tok.from-llm .gloss, .token.from-llm .gloss { color: var(--gloss-llm); }
+@media (max-width: 899px) {
+  .tok .gloss, .token .gloss { max-width: 92px; }
+}
+/* 段尾“释义本句”：正文里的动作按钮，压到最轻 */
+.ai-btn {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  min-height: 22px;
+  padding: 1px 8px;
+  border-radius: 99px;
+  color: var(--ink-3);
+  background: none;
+  border: 1px solid var(--rule-strong);
+  vertical-align: middle;
+}
+.ai-btn:hover { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
+
+/* --------------------------------------------------------------- 页脚/翻页 */
+/* 翻页 + 本页统计 + 费用挤在同一条页脚带里（原先是三条各占一行的横幅）。 */
+.pager {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+}
+.pager button { min-width: 88px; }
+.pager .pager-info {
+  flex: 1 1 auto;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 状态行永远只占一行：页脚高度必须与内容无关（见下方页脚预算注）。 */
+.reader-status {
+  display: flex;
+  gap: 0 16px;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  padding-top: 6px;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-3);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.reader-status [data-testid="gloss-notice"] {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.reader-status .cost { flex: 0 0 auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 899px) {
+  .pager button { min-width: 72px; }
+  /* 页脚预算：首绘分页发生在页脚挂载前，app.ts 按 lastChromeReserved(76px) 估。
+     实测：翻页行 38 + 状态行 23 + 两道 6px 间距 = 73px。超过 76 就会首帧溢出（窄屏曾溢 41px）。 */
+  #app:has(.book-spread) #main { gap: 6px; }
+  .reader-status { font-size: 11.5px; padding-top: 5px; }
+  .reader-status .cost { color: var(--ink-faint); }
+}
+
+/* --------------------------------------------------------------- 详情 sheet */
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--tabbar);
+  max-width: 640px;
+  margin: 0 auto;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-bottom: 0;
+  box-shadow: var(--shadow-sheet);
+  padding: 14px 18px calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  border-radius: var(--r-l) var(--r-l) 0 0;
+}
+.sheet::before {
+  content: '';
+  display: block;
+  width: 36px;
+  height: 4px;
+  margin: -4px auto 10px;
+  border-radius: 99px;
+  background: var(--rule-strong);
+}
+/* 打开时程序式聚焦到面板本体（供屏读/Esc 用），不给整块面板画焦点环：
+   面板本身已是最显著的焦点，套上一圈蓝框只像浏览器默认样式穿帮。内部控件的焦点环照旧。 */
+.sheet:focus, .sheet:focus-visible { outline: none; }
+.sheet h3 { margin: 0 0 6px; font-size: 19px; font-family: var(--font-read); }
+.sheet .row { margin-top: 14px; }
+.kv { font-size: 13px; margin: 3px 0; color: var(--ink-2); }
+.kv .muted { font-size: 12px; }
+/* 释义来源（dict/llm）做成小标签，不再是跟在释义后面的裸字 */
+.src-tag {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 0 6px;
+  border: 1px solid var(--rule);
+  border-radius: 99px;
+  background: var(--surface-bar);
+  color: var(--ink-3);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.src-tag:empty { display: none; }
+@media (min-width: 900px) {
+  .sheet { bottom: 18px; border-radius: var(--r-l); border-bottom: 1px solid var(--rule); right: 18px; left: auto; margin: 0; width: 420px; }
+  .sheet::before { display: none; }
+}
+
+/* --------------------------------------------------------------- 书架卡片 */
+.book-card-title { font-family: var(--font-read); font-size: 19px; }
+.chapter-rows { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 1px; }
+.chapter-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--rule);
+  font-size: 14px;
+}
+.chapter-row .chapter-no { color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; flex: none; min-width: 44px; }
+.chapter-row .chapter-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.book-card button.primary { margin-top: 14px; }
+
+/* ------------------------------------------------------------------ 生词本 */
+.vocab-list { padding: 4px 16px; }
+.vocab-item {
+  border-bottom: 1px solid var(--rule);
+  padding: 14px 0;
+  font-size: 14px;
+}
+.vocab-item:last-child { border-bottom: 0; }
+.vocab-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.vocab-head b { font-family: var(--font-read); font-size: 17px; }
+.vocab-gloss { color: var(--gloss); }
+.sheet-sentence { font-family: var(--font-read); font-size: 14px; line-height: 1.6; margin-top: 8px; }

@@ -1,0 +1,17 @@
+{
+  "name": "@interlinear/lang-packs",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Per-language segment/lemmatize/stopwords. Zero deps, lazy-loadable per language.",
+  "main": "./src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./en": "./src/en.mjs",
+    "./de": "./src/de.mjs",
+    "./fr": "./src/fr.mjs",
+    "./it": "./src/it.mjs",
+    "./es": "./src/es.mjs",
+    "./ru": "./src/ru.mjs",
+    "./ja": "./src/ja.mjs"
+  }
+}

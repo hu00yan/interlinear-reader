@@ -1,0 +1,49 @@
+# curated-zh.tsv — FR zh补齐 + 语料变位别名 (MIT self-owned, CC BY-SA-free curation).
+# Format: lemma\tzh1;zh2\ten1;en2. License: MIT (self-curated single-word facts).
+# --strict safe: filename not in SOURCES VERIFY list (de-zh.tsv/ru-en.tsv/JMdict_zh.gz only).
+# Sources for en: FreeDict fra-eng base glosses; zh: standard bilingual mapping.
+vieil	老的;年老的	old;aged
+vieux	老的;年老的	old;aged
+lit	读;阅读	read;reads
+chaque	每;每个	each;every
+matin	早晨;上午	morning
+aiment	爱;喜欢	love;like
+histoire	故事;历史	story;history
+histoires	故事;历史	story;history
+mangeons	吃	eat
+buvons	喝	drink
+l'	这;定冠词	the
+l	这;定冠词	the
+puis	然后;接着	then;afterwards;next
+à	在;向;给	at;to
+a	在;向;给	at;to
+écrit	写;写作	write;written
+ecrit	写;写作	write;written
+écrire	写;写作	write;to write
+nouvelle	新的;新闻	new;news
+prennent	拿;取	take
+parole	话;言语	word;speech
+chat	猫	cat
+chatte	母猫	she-cat
+chien	狗	dog
+livre	书;阅读	read;book
+école	学校	school
+ecole	学校	school
+ville	城市	city;town
+monde	世界	world
+eau	水	water
+femme	女人	woman
+nuit	夜晚	night
+vie	生活;生命	life
+homme	男人;人	man
+bon	好	good
+voir	看;看见	see;to see
+voit	看;看见	see
+aller	去	go;to go
+allons	去	go
+prendre	拿;取	take;to take
+aimer	爱;喜欢	love;to love
+manger	吃	eat;to eat
+boire	喝	drink;to drink
+grand	大	big
+petit	小	small

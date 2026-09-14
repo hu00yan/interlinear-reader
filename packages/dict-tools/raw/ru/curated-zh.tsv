@@ -1,0 +1,65 @@
+# curated-zh.tsv — RU zh补齐 + 语料格变位别名 (MIT self-owned).
+# Base nominatives already in seeds/FreeDict (en via FreeDict, zh via seeds);
+# this file adds zh for FreeDict-only bases + aliases for inflected corpus forms.
+старый	老的;旧的	old;aged
+читает	读	read
+читать	读;阅读	read;to read
+хорошую	好的	good
+хороший	好;好的	good
+книгу	书	book
+книга	书	book
+маленьком	小的	little;small
+маленький	小;小的	small
+каждое	每;每个	each;every
+утро	早晨	morning;morn
+любят	爱	love
+любить	爱;热爱	love;to like
+любви	爱	love
+истории	故事;历史	story;history
+история	故事;历史	story;history
+историю	故事;历史	story;history
+большом	大的	big
+большой	大;大的	big
+едим	吃	eat
+есть	吃;是	eat;be
+пьем	喝	drink
+пить	喝	drink;to drink
+воду	水	water
+вода	水	water
+идем	去	go
+идти	去;走	go;to go
+школу	学校	school
+школа	学校	school
+видит	看;看见	see
+видеть	看;看见	see;to see
+пишет	写	write
+писать	写;写作	write;to write
+мужчины	男人	men
+мужчина	男人	man
+слова	词;话	word
+слово	词	word
+времени	时间	time
+время	时间	time
+кот	猫	cat
+кошка	猫	cat
+собака	狗	dog
+дом	房子;家	house;home
+городе	城市	city
+город	城市	city
+мир	世界;和平	world;peace
+мире	世界	world
+жизнь	生活;生命	life
+школа	学校	school
+работа	工作	work;job
+вода	水	water
+ночь	夜晚	night
+ночью	夜晚	night
+день	天;白天	day
+человек	人;人类	person;man
+говорить	说;说话	speak;to talk
+говорят	说	speak
+делать	做	make;to do
+знать	知道	know;to know
+книга	书	book
+язык	语言	language
+год	年	year

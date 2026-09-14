@@ -1,0 +1,9 @@
+{
+  "name": "@interlinear/dict-tools",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Open-source dict fetch/clean/shard pipeline. Outputs compact public/dict/{lang}/{target}.dict(.br), one object per source→target pair.",
+  "bin": {
+    "build-dict": "./src/build.mjs"
+  }
+}

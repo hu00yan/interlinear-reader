@@ -1,0 +1,142 @@
+{
+  "en": {
+    "lang": "en",
+    "entries": 770612,
+    "shards": 2,
+    "pairStats": {
+      "zh": {
+        "entries": 107715,
+        "dictBytes": 5831237,
+        "brBytes": 1891608
+      },
+      "en": {
+        "entries": 770612,
+        "dictBytes": 26494354,
+        "brBytes": 7759815
+      }
+    },
+    "jsonBytes": 32325591,
+    "brBytes": 9651423,
+    "gzBytes": 0
+  },
+  "ja": {
+    "lang": "ja",
+    "entries": 465540,
+    "shards": 2,
+    "pairStats": {
+      "zh": {
+        "entries": 79,
+        "dictBytes": 1008,
+        "brBytes": 519
+      },
+      "en": {
+        "entries": 465540,
+        "dictBytes": 26149703,
+        "brBytes": 6668241
+      }
+    },
+    "jsonBytes": 26150711,
+    "brBytes": 6668760,
+    "gzBytes": 0
+  },
+  "de": {
+    "lang": "de",
+    "entries": 4340,
+    "shards": 2,
+    "pairStats": {
+      "zh": {
+        "entries": 52,
+        "dictBytes": 806,
+        "brBytes": 497
+      },
+      "en": {
+        "entries": 4340,
+        "dictBytes": 303243,
+        "brBytes": 114819
+      }
+    },
+    "jsonBytes": 304049,
+    "brBytes": 115316,
+    "gzBytes": 0
+  },
+  "fr": {
+    "lang": "fr",
+    "entries": 8219,
+    "shards": 2,
+    "pairStats": {
+      "zh": {
+        "entries": 64,
+        "dictBytes": 1001,
+        "brBytes": 557
+      },
+      "en": {
+        "entries": 8219,
+        "dictBytes": 206951,
+        "brBytes": 78018
+      }
+    },
+    "jsonBytes": 207952,
+    "brBytes": 78575,
+    "gzBytes": 0
+  },
+  "it": {
+    "lang": "it",
+    "entries": 28251,
+    "shards": 2,
+    "pairStats": {
+      "zh": {
+        "entries": 66,
+        "dictBytes": 903,
+        "brBytes": 504
+      },
+      "en": {
+        "entries": 28251,
+        "dictBytes": 832781,
+        "brBytes": 290014
+      }
+    },
+    "jsonBytes": 833684,
+    "brBytes": 290518,
+    "gzBytes": 0
+  },
+  "es": {
+    "lang": "es",
+    "entries": 4497,
+    "shards": 2,
+    "pairStats": {
+      "zh": {
+        "entries": 63,
+        "dictBytes": 878,
+        "brBytes": 481
+      },
+      "en": {
+        "entries": 4497,
+        "dictBytes": 111047,
+        "brBytes": 44357
+      }
+    },
+    "jsonBytes": 111925,
+    "brBytes": 44838,
+    "gzBytes": 0
+  },
+  "ru": {
+    "lang": "ru",
+    "entries": 42288,
+    "shards": 2,
+    "pairStats": {
+      "zh": {
+        "entries": 73,
+        "dictBytes": 1419,
+        "brBytes": 651
+      },
+      "en": {
+        "entries": 42288,
+        "dictBytes": 1549406,
+        "brBytes": 470727
+      }
+    },
+    "jsonBytes": 1550825,
+    "brBytes": 471378,
+    "gzBytes": 0
+  }
+}

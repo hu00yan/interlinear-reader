@@ -1,0 +1,63 @@
+# curated-zh.tsv — JA zh补齐 (MIT self-owned).
+# JMdict_e provides en only; this file adds zh for corpus + cat family.
+# Format: lemma\tzh\ten. Ja zh kept verbatim (no CJK filter for ja).
+古	古;旧	old;ancient
+小	小	small
+大	大	big
+好	好;喜欢	good;like
+私	我;私	I;private
+飲	喝	drink
+行	去;行	go
+見	看	see
+新	新	new
+しい	新的	adjectival suffix
+書	书;写	book;write
+話	话;故事	talk;story
+読	读	read
+毎朝良	每天早晨好	every morning good
+きだ	喜欢	like
+たち	们	plural suffix
+い	的	nominalizer
+さ	性	suffix
+な	的	adjectival
+む	将	volitional
+き	来	come
+ん	的	nominalizer
+く	地	adverbial
+す	做	do
+猫	猫	cat
+ねこ	猫	cat
+犬	狗	dog
+いぬ	狗	dog
+家	家;家庭	house;home
+人	人;人类	person
+男	男人	man
+女	女人	woman
+子供	孩子	child
+水	水	water
+本	书	book
+町	城镇	town
+世界	世界	world
+学校	学校	school
+生活	生活	life
+夜	夜晚	night
+言葉	语言;话	language
+毎朝	每天早晨	every morning
+良い	好	good
+読む	读	read
+飲む	喝	drink
+行く	去	go
+見る	看	see
+来る	来	come
+する	做	do
+食べる	吃	eat
+話す	说	speak
+大きい	大	big
+小さい	小	small
+新しい	新	new
+子供	孩子	child
+町	城镇	town
+国	国家	country
+時間	时间	time
+仕事	工作	work
+目	眼睛	eye

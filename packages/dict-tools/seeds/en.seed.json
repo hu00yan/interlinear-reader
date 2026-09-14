@@ -1,0 +1,2216 @@
+{
+  "a": {
+    "zh": [
+      "一"
+    ],
+    "en": [
+      "a",
+      "one"
+    ]
+  },
+  "abilities": {
+    "zh": [
+      "能力"
+    ],
+    "en": [
+      "abilities",
+      "talents"
+    ]
+  },
+  "ability": {
+    "zh": [
+      "能力"
+    ],
+    "en": [
+      "ability",
+      "talent"
+    ]
+  },
+  "above": {
+    "zh": [
+      "在…之上"
+    ],
+    "en": [
+      "above",
+      "over"
+    ]
+  },
+  "abuse": {
+    "zh": [
+      "滥用"
+    ],
+    "en": [
+      "abuse",
+      "to misuse"
+    ]
+  },
+  "abused": {
+    "zh": [
+      "滥用"
+    ],
+    "en": [
+      "abused",
+      "misused"
+    ]
+  },
+  "administration": {
+    "zh": [
+      "管理",
+      "行政"
+    ],
+    "en": [
+      "administration",
+      "management"
+    ]
+  },
+  "advantage": {
+    "zh": [
+      "优势",
+      "好处"
+    ],
+    "en": [
+      "advantage",
+      "benefit"
+    ]
+  },
+  "advantages": {
+    "zh": [
+      "优势",
+      "好处"
+    ],
+    "en": [
+      "advantages",
+      "benefits"
+    ]
+  },
+  "all": {
+    "zh": [
+      "全部",
+      "所有"
+    ],
+    "en": [
+      "all",
+      "entire"
+    ]
+  },
+  "an": {
+    "zh": [
+      "一"
+    ],
+    "en": [
+      "an",
+      "one"
+    ]
+  },
+  "ancient": {
+    "zh": [
+      "古代的",
+      "古老的"
+    ],
+    "en": [
+      "ancient",
+      "old"
+    ]
+  },
+  "and": {
+    "zh": [
+      "和"
+    ],
+    "en": [
+      "and",
+      "plus"
+    ]
+  },
+  "antonine": {
+    "zh": [
+      "安敦尼帝"
+    ],
+    "en": [
+      "Antonine",
+      "Roman emperor"
+    ]
+  },
+  "antonines": {
+    "zh": [
+      "安敦尼诸帝"
+    ],
+    "en": [
+      "Antonines",
+      "Roman emperors"
+    ]
+  },
+  "appear": {
+    "zh": [
+      "出现",
+      "似乎"
+    ],
+    "en": [
+      "appear",
+      "to seem"
+    ]
+  },
+  "appeared": {
+    "zh": [
+      "出现",
+      "似乎"
+    ],
+    "en": [
+      "appeared",
+      "seemed"
+    ]
+  },
+  "are": {
+    "zh": [
+      "是"
+    ],
+    "en": [
+      "are",
+      "be"
+    ]
+  },
+  "as": {
+    "zh": [
+      "作为",
+      "像"
+    ],
+    "en": [
+      "as",
+      "like"
+    ]
+  },
+  "at": {
+    "zh": [
+      "在"
+    ],
+    "en": [
+      "at",
+      "position"
+    ]
+  },
+  "authority": {
+    "zh": [
+      "权威",
+      "权力"
+    ],
+    "en": [
+      "authority",
+      "power"
+    ]
+  },
+  "bad": {
+    "zh": [
+      "坏",
+      "坏的",
+      "糟糕"
+    ],
+    "en": [
+      "bad"
+    ]
+  },
+  "be": {
+    "zh": [
+      "是",
+      "在",
+      "存在"
+    ],
+    "en": [
+      "be",
+      "to be"
+    ]
+  },
+  "begin": {
+    "zh": [
+      "开始"
+    ],
+    "en": [
+      "begin",
+      "to start"
+    ]
+  },
+  "beginning": {
+    "zh": [
+      "起初",
+      "开始"
+    ],
+    "en": [
+      "beginning",
+      "start"
+    ]
+  },
+  "big": {
+    "zh": [
+      "大",
+      "大的",
+      "巨大"
+    ],
+    "en": [
+      "big",
+      "large"
+    ]
+  },
+  "book": {
+    "zh": [
+      "书",
+      "书籍"
+    ],
+    "en": [
+      "book"
+    ]
+  },
+  "break": {
+    "zh": [
+      "打破",
+      "中断",
+      "休息"
+    ],
+    "en": [
+      "break",
+      "to break"
+    ]
+  },
+  "but": {
+    "zh": [
+      "但是",
+      "而"
+    ],
+    "en": [
+      "but",
+      "however"
+    ]
+  },
+  "by": {
+    "zh": [
+      "被",
+      "由"
+    ],
+    "en": [
+      "by",
+      "via"
+    ]
+  },
+  "call": {
+    "zh": [
+      "称呼",
+      "叫"
+    ],
+    "en": [
+      "call",
+      "to name"
+    ]
+  },
+  "called": {
+    "zh": [
+      "称",
+      "叫"
+    ],
+    "en": [
+      "called",
+      "named"
+    ]
+  },
+  "can": {
+    "zh": [
+      "能",
+      "可以"
+    ],
+    "en": [
+      "can",
+      "to be able to"
+    ]
+  },
+  "cat": {
+    "zh": [
+      "猫"
+    ],
+    "en": [
+      "cat",
+      "small feline animal"
+    ]
+  },
+  "cement": {
+    "zh": [
+      "巩固",
+      "水泥"
+    ],
+    "en": [
+      "cement",
+      "to unite"
+    ]
+  },
+  "cemented": {
+    "zh": [
+      "巩固",
+      "粘合"
+    ],
+    "en": [
+      "cemented",
+      "united"
+    ]
+  },
+  "century": {
+    "zh": [
+      "世纪"
+    ],
+    "en": [
+      "century",
+      "one hundred years"
+    ]
+  },
+  "child": {
+    "zh": [
+      "孩子",
+      "儿童"
+    ],
+    "en": [
+      "child"
+    ]
+  },
+  "choose": {
+    "zh": [
+      "选择"
+    ],
+    "en": [
+      "choose",
+      "to choose"
+    ]
+  },
+  "christian": {
+    "zh": [
+      "基督教的",
+      "基督徒"
+    ],
+    "en": [
+      "Christian",
+      "of Christ"
+    ]
+  },
+  "city": {
+    "zh": [
+      "城市"
+    ],
+    "en": [
+      "city"
+    ]
+  },
+  "civilised": {
+    "zh": [
+      "文明的"
+    ],
+    "en": [
+      "civilised",
+      "civilized"
+    ]
+  },
+  "civilized": {
+    "zh": [
+      "文明的"
+    ],
+    "en": [
+      "civilized",
+      "advanced"
+    ]
+  },
+  "come": {
+    "zh": [
+      "来",
+      "到来"
+    ],
+    "en": [
+      "come",
+      "to come"
+    ]
+  },
+  "comprehend": {
+    "zh": [
+      "包括",
+      "理解"
+    ],
+    "en": [
+      "comprehend",
+      "to include"
+    ]
+  },
+  "comprehended": {
+    "zh": [
+      "包括",
+      "理解"
+    ],
+    "en": [
+      "comprehended",
+      "included"
+    ]
+  },
+  "conduct": {
+    "zh": [
+      "实施",
+      "行为"
+    ],
+    "en": [
+      "conduct",
+      "to carry out"
+    ]
+  },
+  "conducted": {
+    "zh": [
+      "实施",
+      "指挥"
+    ],
+    "en": [
+      "conducted",
+      "carried out"
+    ]
+  },
+  "constitution": {
+    "zh": [
+      "宪法",
+      "体制"
+    ],
+    "en": [
+      "constitution",
+      "system"
+    ]
+  },
+  "could": {
+    "zh": [
+      "能",
+      "可以"
+    ],
+    "en": [
+      "could",
+      "past of can"
+    ]
+  },
+  "country": {
+    "zh": [
+      "国家",
+      "乡村",
+      " country"
+    ],
+    "en": [
+      "country",
+      "nation"
+    ]
+  },
+  "create": {
+    "zh": [
+      "创造"
+    ],
+    "en": [
+      "create",
+      "to make"
+    ]
+  },
+  "created": {
+    "zh": [
+      "创造"
+    ],
+    "en": [
+      "created",
+      "made"
+    ]
+  },
+  "dark": {
+    "zh": [
+      "黑暗的"
+    ],
+    "en": [
+      "dark",
+      "dim"
+    ]
+  },
+  "darkness": {
+    "zh": [
+      "黑暗"
+    ],
+    "en": [
+      "darkness",
+      "absence of light"
+    ]
+  },
+  "day": {
+    "zh": [
+      "天",
+      "日子",
+      "白天"
+    ],
+    "en": [
+      "day",
+      "daytime"
+    ]
+  },
+  "decent": {
+    "zh": [
+      "得体的",
+      "端庄的"
+    ],
+    "en": [
+      "decent",
+      "proper"
+    ]
+  },
+  "deep": {
+    "zh": [
+      "深渊",
+      "深的"
+    ],
+    "en": [
+      "deep",
+      "profound"
+    ]
+  },
+  "devolve": {
+    "zh": [
+      "移交"
+    ],
+    "en": [
+      "devolve",
+      "to transfer"
+    ]
+  },
+  "devolved": {
+    "zh": [
+      "移交",
+      "下放"
+    ],
+    "en": [
+      "devolved",
+      "transferred"
+    ]
+  },
+  "discipline": {
+    "zh": [
+      "纪律",
+      "训练"
+    ],
+    "en": [
+      "discipline",
+      "training"
+    ]
+  },
+  "disciplined": {
+    "zh": [
+      "守纪律的",
+      "训练有素的"
+    ],
+    "en": [
+      "disciplined",
+      "trained"
+    ]
+  },
+  "divide": {
+    "zh": [
+      "分开"
+    ],
+    "en": [
+      "divide",
+      "to separate"
+    ]
+  },
+  "divided": {
+    "zh": [
+      "分开"
+    ],
+    "en": [
+      "divided",
+      "separated"
+    ]
+  },
+  "do": {
+    "zh": [
+      "做",
+      "干"
+    ],
+    "en": [
+      "do",
+      "to do"
+    ]
+  },
+  "drink": {
+    "zh": [
+      "喝",
+      "饮料"
+    ],
+    "en": [
+      "drink",
+      "to drink"
+    ]
+  },
+  "drive": {
+    "zh": [
+      "驾驶",
+      "开车",
+      "驱动"
+    ],
+    "en": [
+      "drive",
+      "to drive"
+    ]
+  },
+  "during": {
+    "zh": [
+      "在…期间"
+    ],
+    "en": [
+      "during",
+      "throughout"
+    ]
+  },
+  "earth": {
+    "zh": [
+      "大地",
+      "地球"
+    ],
+    "en": [
+      "earth",
+      "ground"
+    ]
+  },
+  "eat": {
+    "zh": [
+      "吃"
+    ],
+    "en": [
+      "eat",
+      "to eat"
+    ]
+  },
+  "else": {
+    "zh": [
+      "否则",
+      "其他"
+    ],
+    "en": [
+      "else",
+      "otherwise"
+    ]
+  },
+  "emperor": {
+    "zh": [
+      "皇帝"
+    ],
+    "en": [
+      "emperor",
+      "ruler"
+    ]
+  },
+  "emperors": {
+    "zh": [
+      "皇帝"
+    ],
+    "en": [
+      "emperors",
+      "rulers"
+    ]
+  },
+  "empire": {
+    "zh": [
+      "帝国"
+    ],
+    "en": [
+      "empire",
+      "large state"
+    ]
+  },
+  "enjoy": {
+    "zh": [
+      "享受",
+      "喜爱"
+    ],
+    "en": [
+      "enjoy",
+      "to like"
+    ]
+  },
+  "enjoyed": {
+    "zh": [
+      "享受",
+      "喜爱"
+    ],
+    "en": [
+      "enjoyed",
+      "liked"
+    ]
+  },
+  "era": {
+    "zh": [
+      "时代",
+      "纪元"
+    ],
+    "en": [
+      "era",
+      "period of time"
+    ]
+  },
+  "evening": {
+    "zh": [
+      "晚上",
+      "黄昏"
+    ],
+    "en": [
+      "evening",
+      "dusk"
+    ]
+  },
+  "executive": {
+    "zh": [
+      "行政的",
+      "执行"
+    ],
+    "en": [
+      "executive",
+      "administrative"
+    ]
+  },
+  "extensive": {
+    "zh": [
+      "广阔的",
+      "广泛的"
+    ],
+    "en": [
+      "extensive",
+      "vast"
+    ]
+  },
+  "face": {
+    "zh": [
+      "面",
+      "脸"
+    ],
+    "en": [
+      "face",
+      "surface"
+    ]
+  },
+  "fair": {
+    "zh": [
+      "公平的",
+      "美丽的"
+    ],
+    "en": [
+      "fair",
+      "beautiful"
+    ]
+  },
+  "fairest": {
+    "zh": [
+      "最美丽的",
+      "最好的"
+    ],
+    "en": [
+      "fairest",
+      "most beautiful"
+    ]
+  },
+  "fall": {
+    "zh": [
+      "掉落",
+      "摔倒",
+      "秋天"
+    ],
+    "en": [
+      "fall",
+      "to fall"
+    ]
+  },
+  "firmament": {
+    "zh": [
+      "穹苍",
+      "天空"
+    ],
+    "en": [
+      "firmament",
+      "expanse"
+    ]
+  },
+  "first": {
+    "zh": [
+      "第一"
+    ],
+    "en": [
+      "first",
+      "initial"
+    ]
+  },
+  "fly": {
+    "zh": [
+      "飞",
+      "飞行"
+    ],
+    "en": [
+      "fly",
+      "to fly"
+    ]
+  },
+  "for": {
+    "zh": [
+      "为了"
+    ],
+    "en": [
+      "for",
+      "purpose"
+    ]
+  },
+  "form": {
+    "zh": [
+      "形状",
+      "形态"
+    ],
+    "en": [
+      "form",
+      "shape"
+    ]
+  },
+  "fourscore": {
+    "zh": [
+      "八十"
+    ],
+    "en": [
+      "fourscore",
+      "eighty"
+    ]
+  },
+  "free": {
+    "zh": [
+      "自由的",
+      "免费的"
+    ],
+    "en": [
+      "free",
+      "liberty"
+    ]
+  },
+  "from": {
+    "zh": [
+      "从",
+      "来自"
+    ],
+    "en": [
+      "from",
+      "out of"
+    ]
+  },
+  "frontier": {
+    "zh": [
+      "边疆",
+      "边界"
+    ],
+    "en": [
+      "frontier",
+      "border"
+    ]
+  },
+  "frontiers": {
+    "zh": [
+      "边疆",
+      "边界"
+    ],
+    "en": [
+      "frontiers",
+      "borders"
+    ]
+  },
+  "gentle": {
+    "zh": [
+      "温和的",
+      "轻柔的"
+    ],
+    "en": [
+      "gentle",
+      "mild"
+    ]
+  },
+  "give": {
+    "zh": [
+      "给",
+      "给予"
+    ],
+    "en": [
+      "give",
+      "to give"
+    ]
+  },
+  "go": {
+    "zh": [
+      "去",
+      "走",
+      "离开"
+    ],
+    "en": [
+      "go",
+      "to go"
+    ]
+  },
+  "god": {
+    "zh": [
+      "神",
+      "上帝"
+    ],
+    "en": [
+      "God",
+      "deity"
+    ]
+  },
+  "good": {
+    "zh": [
+      "好",
+      "好的",
+      "良好"
+    ],
+    "en": [
+      "good",
+      "fine"
+    ]
+  },
+  "government": {
+    "zh": [
+      "政府"
+    ],
+    "en": [
+      "government",
+      "rule"
+    ]
+  },
+  "gradually": {
+    "zh": [
+      "逐渐地"
+    ],
+    "en": [
+      "gradually",
+      "slowly"
+    ]
+  },
+  "guard": {
+    "zh": [
+      "守卫",
+      "保卫"
+    ],
+    "en": [
+      "guard",
+      "to protect"
+    ]
+  },
+  "guarded": {
+    "zh": [
+      "守卫",
+      "保卫"
+    ],
+    "en": [
+      "guarded",
+      "protected"
+    ]
+  },
+  "hadrian": {
+    "zh": [
+      "哈德良"
+    ],
+    "en": [
+      "Hadrian",
+      "Roman emperor"
+    ]
+  },
+  "happy": {
+    "zh": [
+      "幸福的",
+      "快乐的"
+    ],
+    "en": [
+      "happy",
+      "glad"
+    ]
+  },
+  "have": {
+    "zh": [
+      "有",
+      "具有"
+    ],
+    "en": [
+      "have",
+      "to have"
+    ]
+  },
+  "he": {
+    "zh": [
+      "他"
+    ],
+    "en": [
+      "he",
+      "him"
+    ]
+  },
+  "heaven": {
+    "zh": [
+      "天",
+      "天堂"
+    ],
+    "en": [
+      "heaven",
+      "sky"
+    ]
+  },
+  "house": {
+    "zh": [
+      "房子",
+      "住宅",
+      "房屋"
+    ],
+    "en": [
+      "house"
+    ]
+  },
+  "if": {
+    "zh": [
+      "如果"
+    ],
+    "en": [
+      "if",
+      "condition"
+    ]
+  },
+  "image": {
+    "zh": [
+      "形象",
+      "影像"
+    ],
+    "en": [
+      "image",
+      "picture"
+    ]
+  },
+  "in": {
+    "zh": [
+      "在…里"
+    ],
+    "en": [
+      "in",
+      "inside"
+    ]
+  },
+  "influence": {
+    "zh": [
+      "影响"
+    ],
+    "en": [
+      "influence",
+      "effect"
+    ]
+  },
+  "inhabitant": {
+    "zh": [
+      "居民"
+    ],
+    "en": [
+      "inhabitant",
+      "resident"
+    ]
+  },
+  "inhabitants": {
+    "zh": [
+      "居民"
+    ],
+    "en": [
+      "inhabitants",
+      "residents"
+    ]
+  },
+  "is": {
+    "zh": [
+      "是"
+    ],
+    "en": [
+      "is",
+      "be"
+    ]
+  },
+  "it": {
+    "zh": [
+      "它"
+    ],
+    "en": [
+      "it",
+      "this"
+    ]
+  },
+  "know": {
+    "zh": [
+      "知道",
+      "认识",
+      "了解"
+    ],
+    "en": [
+      "know",
+      "to know"
+    ]
+  },
+  "language": {
+    "zh": [
+      "语言"
+    ],
+    "en": [
+      "language"
+    ]
+  },
+  "law": {
+    "zh": [
+      "法律"
+    ],
+    "en": [
+      "law",
+      "rule"
+    ]
+  },
+  "laws": {
+    "zh": [
+      "法律"
+    ],
+    "en": [
+      "laws",
+      "rules"
+    ]
+  },
+  "leaf": {
+    "zh": [
+      "叶子"
+    ],
+    "en": [
+      "leaf"
+    ]
+  },
+  "let": {
+    "zh": [
+      "让",
+      "使"
+    ],
+    "en": [
+      "let",
+      "to allow"
+    ]
+  },
+  "life": {
+    "zh": [
+      "生活",
+      "生命",
+      "人生"
+    ],
+    "en": [
+      "life"
+    ]
+  },
+  "light": {
+    "zh": [
+      "光"
+    ],
+    "en": [
+      "light",
+      "brightness"
+    ]
+  },
+  "live": {
+    "zh": [
+      "生活",
+      "居住"
+    ],
+    "en": [
+      "live",
+      "to live"
+    ]
+  },
+  "love": {
+    "zh": [
+      "爱",
+      "爱情",
+      "热爱"
+    ],
+    "en": [
+      "love",
+      "to love"
+    ]
+  },
+  "luxury": {
+    "zh": [
+      "奢华",
+      "奢侈"
+    ],
+    "en": [
+      "luxury",
+      "lavishness"
+    ]
+  },
+  "made": {
+    "zh": [
+      "制作"
+    ],
+    "en": [
+      "made",
+      "created"
+    ]
+  },
+  "make": {
+    "zh": [
+      "制作",
+      "制造",
+      "使"
+    ],
+    "en": [
+      "make",
+      "to make"
+    ]
+  },
+  "man": {
+    "zh": [
+      "男人",
+      "人",
+      "人类"
+    ],
+    "en": [
+      "man",
+      "human"
+    ]
+  },
+  "mankind": {
+    "zh": [
+      "人类"
+    ],
+    "en": [
+      "mankind",
+      "humanity"
+    ]
+  },
+  "manner": {
+    "zh": [
+      "方式",
+      "风俗"
+    ],
+    "en": [
+      "manner",
+      "way"
+    ]
+  },
+  "manners": {
+    "zh": [
+      "风俗",
+      "礼貌"
+    ],
+    "en": [
+      "manners",
+      "customs"
+    ]
+  },
+  "midst": {
+    "zh": [
+      "中间"
+    ],
+    "en": [
+      "midst",
+      "middle"
+    ]
+  },
+  "monarchy": {
+    "zh": [
+      "君主制",
+      "君主国"
+    ],
+    "en": [
+      "monarchy",
+      "kingdom"
+    ]
+  },
+  "more": {
+    "zh": [
+      "更多"
+    ],
+    "en": [
+      "more",
+      "additional"
+    ]
+  },
+  "morning": {
+    "zh": [
+      "早晨",
+      "上午"
+    ],
+    "en": [
+      "morning"
+    ]
+  },
+  "most": {
+    "zh": [
+      "最",
+      "大多数"
+    ],
+    "en": [
+      "most",
+      "majority"
+    ]
+  },
+  "move": {
+    "zh": [
+      "移动",
+      "运行"
+    ],
+    "en": [
+      "move",
+      "to stir"
+    ]
+  },
+  "moved": {
+    "zh": [
+      "运行",
+      "移动"
+    ],
+    "en": [
+      "moved",
+      "stirred"
+    ]
+  },
+  "nerva": {
+    "zh": [
+      "涅尔瓦"
+    ],
+    "en": [
+      "Nerva",
+      "Roman emperor"
+    ]
+  },
+  "new": {
+    "zh": [
+      "新",
+      "新的"
+    ],
+    "en": [
+      "new"
+    ]
+  },
+  "night": {
+    "zh": [
+      "夜晚",
+      "晚上"
+    ],
+    "en": [
+      "night"
+    ]
+  },
+  "no": {
+    "zh": [
+      "不",
+      "没有"
+    ],
+    "en": [
+      "no",
+      "negation"
+    ]
+  },
+  "not": {
+    "zh": [
+      "不",
+      "没"
+    ],
+    "en": [
+      "not",
+      "negation"
+    ]
+  },
+  "of": {
+    "zh": [
+      "的"
+    ],
+    "en": [
+      "of",
+      "belonging to"
+    ]
+  },
+  "old": {
+    "zh": [
+      "老",
+      "旧",
+      "老的"
+    ],
+    "en": [
+      "old"
+    ]
+  },
+  "on": {
+    "zh": [
+      "在…上"
+    ],
+    "en": [
+      "on",
+      "upon"
+    ]
+  },
+  "or": {
+    "zh": [
+      "或",
+      "或者"
+    ],
+    "en": [
+      "or",
+      "either"
+    ]
+  },
+  "part": {
+    "zh": [
+      "部分"
+    ],
+    "en": [
+      "part",
+      "portion"
+    ]
+  },
+  "peaceful": {
+    "zh": [
+      "和平的",
+      "安宁的"
+    ],
+    "en": [
+      "peaceful",
+      "calm"
+    ]
+  },
+  "people": {
+    "zh": [
+      "人们",
+      "人民",
+      "人"
+    ],
+    "en": [
+      "people",
+      "persons"
+    ]
+  },
+  "period": {
+    "zh": [
+      "时期",
+      "阶段"
+    ],
+    "en": [
+      "period",
+      "time"
+    ]
+  },
+  "portion": {
+    "zh": [
+      "部分"
+    ],
+    "en": [
+      "portion",
+      "part"
+    ]
+  },
+  "possess": {
+    "zh": [
+      "拥有"
+    ],
+    "en": [
+      "possess",
+      "to own"
+    ]
+  },
+  "power": {
+    "zh": [
+      "权力",
+      "力量"
+    ],
+    "en": [
+      "power",
+      "strength"
+    ]
+  },
+  "powerful": {
+    "zh": [
+      "强大的",
+      "有力的"
+    ],
+    "en": [
+      "powerful",
+      "strong"
+    ]
+  },
+  "powers": {
+    "zh": [
+      "权力"
+    ],
+    "en": [
+      "powers",
+      "authority"
+    ]
+  },
+  "preserve": {
+    "zh": [
+      "保存",
+      "维护"
+    ],
+    "en": [
+      "preserve",
+      "to keep"
+    ]
+  },
+  "preserved": {
+    "zh": [
+      "保存",
+      "维护"
+    ],
+    "en": [
+      "preserved",
+      "kept"
+    ]
+  },
+  "province": {
+    "zh": [
+      "行省",
+      "省"
+    ],
+    "en": [
+      "province",
+      "region"
+    ]
+  },
+  "provinces": {
+    "zh": [
+      "行省",
+      "省份"
+    ],
+    "en": [
+      "provinces",
+      "regions"
+    ]
+  },
+  "public": {
+    "zh": [
+      "公共的"
+    ],
+    "en": [
+      "public",
+      "open"
+    ]
+  },
+  "read": {
+    "zh": [
+      "读",
+      "阅读",
+      "朗读"
+    ],
+    "en": [
+      "read",
+      "to read"
+    ]
+  },
+  "renown": {
+    "zh": [
+      "名望",
+      "声誉"
+    ],
+    "en": [
+      "renown",
+      "fame"
+    ]
+  },
+  "reverence": {
+    "zh": [
+      "敬畏",
+      "尊敬"
+    ],
+    "en": [
+      "reverence",
+      "respect"
+    ]
+  },
+  "roman": {
+    "zh": [
+      "罗马的",
+      "罗马人"
+    ],
+    "en": [
+      "Roman",
+      "of Rome"
+    ]
+  },
+  "rome": {
+    "zh": [
+      "罗马"
+    ],
+    "en": [
+      "Rome",
+      "capital of Roman Empire"
+    ]
+  },
+  "run": {
+    "zh": [
+      "跑",
+      "跑步",
+      "经营"
+    ],
+    "en": [
+      "run",
+      "to run"
+    ]
+  },
+  "said": {
+    "zh": [
+      "说"
+    ],
+    "en": [
+      "said",
+      "told"
+    ]
+  },
+  "saw": {
+    "zh": [
+      "看见"
+    ],
+    "en": [
+      "saw",
+      "seen"
+    ]
+  },
+  "say": {
+    "zh": [
+      "说"
+    ],
+    "en": [
+      "say",
+      "to say"
+    ]
+  },
+  "school": {
+    "zh": [
+      "学校"
+    ],
+    "en": [
+      "school"
+    ]
+  },
+  "second": {
+    "zh": [
+      "第二",
+      "秒"
+    ],
+    "en": [
+      "second",
+      "coming after first"
+    ]
+  },
+  "see": {
+    "zh": [
+      "看见",
+      "看",
+      "明白"
+    ],
+    "en": [
+      "see",
+      "to see"
+    ]
+  },
+  "senate": {
+    "zh": [
+      "元老院"
+    ],
+    "en": [
+      "senate",
+      "council"
+    ]
+  },
+  "shall": {
+    "zh": [
+      "将",
+      "应该"
+    ],
+    "en": [
+      "shall",
+      "auxiliary"
+    ]
+  },
+  "should": {
+    "zh": [
+      "应该"
+    ],
+    "en": [
+      "should",
+      "ought to"
+    ]
+  },
+  "small": {
+    "zh": [
+      "小",
+      "小的"
+    ],
+    "en": [
+      "small",
+      "little"
+    ]
+  },
+  "so": {
+    "zh": [
+      "如此",
+      "所以"
+    ],
+    "en": [
+      "so",
+      "therefore"
+    ]
+  },
+  "sovereign": {
+    "zh": [
+      "君主",
+      "至高无上的"
+    ],
+    "en": [
+      "sovereign",
+      "supreme"
+    ]
+  },
+  "speak": {
+    "zh": [
+      "说",
+      "说话",
+      "演讲"
+    ],
+    "en": [
+      "speak",
+      "to speak"
+    ]
+  },
+  "spirit": {
+    "zh": [
+      "灵",
+      "精神"
+    ],
+    "en": [
+      "spirit",
+      "soul"
+    ]
+  },
+  "story": {
+    "zh": [
+      "故事"
+    ],
+    "en": [
+      "story"
+    ]
+  },
+  "study": {
+    "zh": [
+      "学习",
+      "研究"
+    ],
+    "en": [
+      "study",
+      "to study"
+    ]
+  },
+  "take": {
+    "zh": [
+      "拿",
+      "取",
+      "带走"
+    ],
+    "en": [
+      "take",
+      "to take"
+    ]
+  },
+  "than": {
+    "zh": [
+      "比"
+    ],
+    "en": [
+      "than",
+      "compared to"
+    ]
+  },
+  "that": {
+    "zh": [
+      "那个",
+      "那"
+    ],
+    "en": [
+      "that",
+      "that one"
+    ]
+  },
+  "the": {
+    "zh": [
+      "这",
+      "那"
+    ],
+    "en": [
+      "the",
+      "definite article"
+    ]
+  },
+  "their": {
+    "zh": [
+      "他们的"
+    ],
+    "en": [
+      "their",
+      "belonging to them"
+    ]
+  },
+  "then": {
+    "zh": [
+      "然后",
+      "那么"
+    ],
+    "en": [
+      "then",
+      "afterwards"
+    ]
+  },
+  "there": {
+    "zh": [
+      "那里"
+    ],
+    "en": [
+      "there",
+      "in that place"
+    ]
+  },
+  "think": {
+    "zh": [
+      "想",
+      "思考",
+      "认为"
+    ],
+    "en": [
+      "think",
+      "to think"
+    ]
+  },
+  "time": {
+    "zh": [
+      "时间",
+      "时候",
+      "时机"
+    ],
+    "en": [
+      "time",
+      "occasion"
+    ]
+  },
+  "to": {
+    "zh": [
+      "到",
+      "向"
+    ],
+    "en": [
+      "to",
+      "toward"
+    ]
+  },
+  "trajan": {
+    "zh": [
+      "图拉真"
+    ],
+    "en": [
+      "Trajan",
+      "Roman emperor"
+    ]
+  },
+  "two": {
+    "zh": [
+      "二",
+      "两个"
+    ],
+    "en": [
+      "two",
+      "2"
+    ]
+  },
+  "under": {
+    "zh": [
+      "在…之下"
+    ],
+    "en": [
+      "under",
+      "below"
+    ]
+  },
+  "union": {
+    "zh": [
+      "联合",
+      "统一"
+    ],
+    "en": [
+      "union",
+      "unity"
+    ]
+  },
+  "upon": {
+    "zh": [
+      "在…之上"
+    ],
+    "en": [
+      "upon",
+      "on"
+    ]
+  },
+  "valor": {
+    "zh": [
+      "英勇",
+      "勇气"
+    ],
+    "en": [
+      "valor",
+      "bravery"
+    ]
+  },
+  "valour": {
+    "zh": [
+      "英勇",
+      "勇气"
+    ],
+    "en": [
+      "valour",
+      "bravery"
+    ]
+  },
+  "very": {
+    "zh": [
+      "非常"
+    ],
+    "en": [
+      "very",
+      "extremely"
+    ]
+  },
+  "virtue": {
+    "zh": [
+      "美德"
+    ],
+    "en": [
+      "virtue",
+      "morality"
+    ]
+  },
+  "void": {
+    "zh": [
+      "空虚",
+      "无效的"
+    ],
+    "en": [
+      "void",
+      "empty"
+    ]
+  },
+  "was": {
+    "zh": [
+      "是"
+    ],
+    "en": [
+      "was",
+      "past of be"
+    ]
+  },
+  "water": {
+    "zh": [
+      "水"
+    ],
+    "en": [
+      "water"
+    ]
+  },
+  "waters": {
+    "zh": [
+      "水"
+    ],
+    "en": [
+      "waters",
+      "water"
+    ]
+  },
+  "way": {
+    "zh": [
+      "方法",
+      "道路",
+      "方式"
+    ],
+    "en": [
+      "way",
+      "method",
+      "road"
+    ]
+  },
+  "wealth": {
+    "zh": [
+      "财富"
+    ],
+    "en": [
+      "wealth",
+      "riches"
+    ]
+  },
+  "were": {
+    "zh": [
+      "是"
+    ],
+    "en": [
+      "were",
+      "past of be"
+    ]
+  },
+  "when": {
+    "zh": [
+      "当…时"
+    ],
+    "en": [
+      "when",
+      "at the time"
+    ]
+  },
+  "which": {
+    "zh": [
+      "哪个",
+      "那"
+    ],
+    "en": [
+      "which",
+      "what one"
+    ]
+  },
+  "while": {
+    "zh": [
+      "当…时",
+      "而"
+    ],
+    "en": [
+      "while",
+      "during"
+    ]
+  },
+  "will": {
+    "zh": [
+      "将",
+      "愿意"
+    ],
+    "en": [
+      "will",
+      "auxiliary"
+    ]
+  },
+  "with": {
+    "zh": [
+      "和",
+      "用"
+    ],
+    "en": [
+      "with",
+      "together"
+    ]
+  },
+  "without": {
+    "zh": [
+      "没有"
+    ],
+    "en": [
+      "without",
+      "lacking"
+    ]
+  },
+  "woman": {
+    "zh": [
+      "女人",
+      "妇女"
+    ],
+    "en": [
+      "woman"
+    ]
+  },
+  "word": {
+    "zh": [
+      "词",
+      "单词",
+      "话"
+    ],
+    "en": [
+      "word"
+    ]
+  },
+  "work": {
+    "zh": [
+      "工作",
+      "劳动",
+      "作品"
+    ],
+    "en": [
+      "work",
+      "to work"
+    ]
+  },
+  "world": {
+    "zh": [
+      "世界"
+    ],
+    "en": [
+      "world"
+    ]
+  },
+  "would": {
+    "zh": [
+      "将",
+      "愿意"
+    ],
+    "en": [
+      "would",
+      "auxiliary"
+    ]
+  },
+  "write": {
+    "zh": [
+      "写",
+      "写作",
+      "书写"
+    ],
+    "en": [
+      "write",
+      "to write"
+    ]
+  },
+  "year": {
+    "zh": [
+      "年"
+    ],
+    "en": [
+      "year",
+      "twelve months"
+    ]
+  },
+  "years": {
+    "zh": [
+      "年"
+    ],
+    "en": [
+      "years",
+      "age"
+    ]
+  },
+  "you": {
+    "zh": [
+      "你",
+      "你们"
+    ],
+    "en": [
+      "you",
+      "second person"
+    ]
+  },
+  "your": {
+    "zh": [
+      "你的",
+      "你们的"
+    ],
+    "en": [
+      "your",
+      "belonging to you"
+    ]
+  },
+  "yours": {
+    "zh": [
+      "你的",
+      "你们的"
+    ],
+    "en": [
+      "yours",
+      "belonging to you"
+    ]
+  }
+}

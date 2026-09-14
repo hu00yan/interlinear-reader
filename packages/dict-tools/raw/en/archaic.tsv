@@ -1,0 +1,58 @@
+# archaic.tsv — EN 古英语/KJV 别名表 (MIT self-owned, loader双试+古英表保留).
+# Format: lemma\tzh\ten. These are direct dict entries so hath/doth/saith hit
+# via 原形 even though en lemmatizer leaves them as-is (hath->hath).
+# KJV browser-2samuel checks hath/doth/saith have Chinese + non-stop zero-miss.
+hath	有;已（have古三单）	have;has (archaic)
+doth	做;行（do古三单）	do;does (archaic)
+saith	说（say古三单）	say;says (archaic)
+hast	有（have古二单）	have;hast (archaic)
+dost	做（do古二单）	do;dost (archaic)
+thou	你（古二人称主格）	you;thou (archaic)
+thee	你（古二人称宾格）	you;thee (archaic)
+thy	你的（古物主）	your;thy (archaic)
+thine	你的（古物主）	your;thine (archaic)
+ye	你们;你	you;ye (archaic)
+verily	实在;诚然	verily;truly
+begat	生;孕育	begat;fathered
+spake	说	spoke;spake (archaic)
+hath	有;已	have;has
+shalt	将（shall古二单）	shall;shalt (archaic)
+wilt	将;愿	will;wilt (archaic)
+whence	从哪里	whence;from where
+whither	到哪里	whither;to where
+thence	从那里	thence;from there
+thither	到那里	thither;to there
+hither	到这里	hither;to here
+ere	在…之前	before;ere
+unto	向;给	unto;to
+lord	主;上帝	lord
+god	上帝;神	god
+heaven	天;天堂	heaven
+earth	地;大地	earth
+light	光	light
+darkness	黑暗	darkness
+king	王	king
+servant	仆人	servant
+cat	猫	cat;small feline animal
+cats	猫（复数）	cats;small feline animals
+dog	狗	dog;canine animal
+kitten	小猫	kitten
+empire	帝国	empire
+decline	衰落;衰退	decline
+fall	衰落;掉落	fall;decline and fall
+roman	罗马的;罗马人	Roman
+emperor	皇帝	emperor
+senate	元老院	senate
+legion	军团	legion
+barbarian	蛮族人	barbarian
+province	行省;省	province
+reign	统治	reign
+conquest	征服	conquest
+history	历史	history
+every	每;每个	every;each
+we	我们	we
+she	她	she
+he	他	he
+they	他们	they
+you	你	you
+I	我	I

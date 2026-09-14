@@ -1,0 +1,17 @@
+{
+  "name": "@interlinear/provider",
+  "version": "0.1.0-track-c",
+  "type": "module",
+  "description": "Track C: OpenAI-compatible LLM provider layer + A/B/C orchestration + gloss cache. Browser-direct, key never leaves the device except to the configured LLM baseUrl.",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./mock-server": "./src/mock-server.ts"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.ts\""
+  },
+  "engines": {
+    "node": ">=22.6"
+  }
+}

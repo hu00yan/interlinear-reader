@@ -1,0 +1,359 @@
+{
+  "date": "2026-09-12T14:51:04.490Z",
+  "base": "http://127.0.0.1:57480",
+  "baseKind": "LOCAL",
+  "cf": "https://ilr-cache.hacker-news-roo.workers.dev",
+  "pagesDomain": null,
+  "note": "CF Pages 域未出（仅 Worker 域 live），本轮为本地 dist 实测 + 公网 Worker 自测；Pages 域出后 --base=<pages域> 重跑本脚本",
+  "worker": {
+    "ok": true,
+    "latencyMs": 1468,
+    "langs": [
+      "en",
+      "de",
+      "fr",
+      "it",
+      "es",
+      "ru",
+      "ja"
+    ],
+    "modes": [
+      "A",
+      "B",
+      "C"
+    ],
+    "shardsOk": [
+      "dict/en/",
+      "dict/it/",
+      "dict/ja/",
+      "dict/es/",
+      "dict/fr/",
+      "dict/ru/",
+      "dict/de/"
+    ],
+    "hitRate": 0
+  },
+  "dom": {
+    "gibbon": {
+      "toks": 127,
+      "hit": 75,
+      "total": 75,
+      "rate": 1,
+      "misses": [],
+      "pager": {
+        "n": 2,
+        "top": 1,
+        "bottom": 1,
+        "order": {
+          "top": 4,
+          "body": 5,
+          "bottom": 6
+        },
+        "info": "第1/1章 · gibbon.txt · 1/1 页（1段）"
+      }
+    },
+    "kjv": {
+      "toks": 112,
+      "hit": 56,
+      "total": 56,
+      "rate": 1,
+      "misses": []
+    },
+    "samuel": {
+      "content": {
+        "toks": 106,
+        "hit": 60,
+        "total": 60,
+        "rate": 1,
+        "misses": []
+      },
+      "pager": {
+        "n": 2,
+        "top": 1,
+        "bottom": 1,
+        "order": {
+          "top": 4,
+          "body": 5,
+          "bottom": 6
+        },
+        "info": "第1/1章 · 2nd SAMUEL - KJV.txt · 1/10 页（20段）"
+      },
+      "archaic": {
+        "hath": "有",
+        "doth": "做",
+        "saith": "说"
+      }
+    },
+    "auto": {
+      "notice": "Auto 万能模式：无词典/分词包，整句送 LLM 自动识别源语言并分词+注（纯 LLM 费用，按段计费，注意上限；无 key 请去「设置」填写）。本页 Auto 纯 LLM 已注 0/0 词（无词典，纯 LLM 费用，已用 $0.0000 / 上限 $5）。",
+      "exportTitle": "Auto 万能需 key：去设置填 key 后导出（纯 LLM 费用）",
+      "pager": 2
+    },
+    "exportBtns": {
+      "reader": 1,
+      "settings": 1
+    },
+    "quality": {
+      "testBtn": 1,
+      "result": 1,
+      "judgeChecked": false,
+      "text": "未测试：点击上方按钮，用当前模型跑 7 语金标。"
+    }
+  },
+  "perf": {
+    "ttfbMs": 4,
+    "domContentLoadedMs": 29,
+    "loadMs": 29,
+    "lcpMs": 96,
+    "cls": 0.0057,
+    "longTasks": 0,
+    "maxEventDurMs": 0,
+    "jsResources": [
+      {
+        "f": "index-DIgB9S9I.js",
+        "transfer": 36908,
+        "encoded": 36608,
+        "dur": 5
+      },
+      {
+        "f": "epub-AUbBmX8e.js",
+        "transfer": 101326,
+        "encoded": 101026,
+        "dur": 7
+      },
+      {
+        "f": "lang-dict-B4gNmopU.js",
+        "transfer": 10331,
+        "encoded": 10031,
+        "dur": 7
+      },
+      {
+        "f": "llm-DV6gqttf.js",
+        "transfer": 19276,
+        "encoded": 18976,
+        "dur": 6
+      }
+    ],
+    "jsNet": [
+      {
+        "url": "index-DIgB9S9I.js",
+        "status": 200,
+        "len": "?"
+      },
+      {
+        "url": "lang-dict-B4gNmopU.js",
+        "status": 200,
+        "len": "?"
+      },
+      {
+        "url": "llm-DV6gqttf.js",
+        "status": 200,
+        "len": "?"
+      },
+      {
+        "url": "epub-AUbBmX8e.js",
+        "status": 200,
+        "len": "?"
+      }
+    ],
+    "note": "INP 需真实交互：以下翻页 p50 作为 INP-proxy，另见 maxEventDur/longTasks"
+  },
+  "pageturn": {
+    "rounds": 11,
+    "samples": [
+      44,
+      40,
+      33,
+      34,
+      33,
+      32,
+      35,
+      33,
+      33,
+      33,
+      33,
+      34,
+      34,
+      32,
+      34,
+      34,
+      35,
+      32,
+      34,
+      61,
+      52,
+      44
+    ],
+    "n": 22,
+    "min": 32,
+    "max": 61,
+    "p50": 34,
+    "p99": 61,
+    "mean": 37,
+    "pagerStill2": true,
+    "chapter": {
+      "chapters": 7,
+      "samples": [
+        47,
+        62,
+        50,
+        50,
+        50,
+        52
+      ],
+      "p50": 50,
+      "p99": 62
+    }
+  },
+  "firstScreenJs": {
+    "gzipB": 12100,
+    "gzipKB": 11.8,
+    "budgetKB": 60,
+    "rows": [
+      {
+        "f": "epub-AUbBmX8e.js",
+        "gzipB": 31670,
+        "lazy": true
+      },
+      {
+        "f": "epub-B_scfYqD.js",
+        "gzipB": 1646,
+        "lazy": true
+      },
+      {
+        "f": "index-DIgB9S9I.js",
+        "gzipB": 12100,
+        "lazy": false
+      },
+      {
+        "f": "lang-dict-B4gNmopU.js",
+        "gzipB": 4100,
+        "lazy": true
+      },
+      {
+        "f": "llm-DV6gqttf.js",
+        "gzipB": 6745,
+        "lazy": true
+      },
+      {
+        "f": "url-ingest-B0oq4uks.js",
+        "gzipB": 677,
+        "lazy": true
+      }
+    ],
+    "noPreload": true
+  },
+  "checks": [
+    {
+      "name": "CF Worker /api/selfcheck 7+7",
+      "ok": true,
+      "extra": "lat=1468ms shardsOk=7 hitRate=0"
+    },
+    {
+      "name": "首屏JS ≤60KB gzip",
+      "ok": true,
+      "extra": "11.8KB"
+    },
+    {
+      "name": "无 modulepreload（首屏口径不失真）",
+      "ok": true,
+      "extra": "dist/index.html"
+    },
+    {
+      "name": "LCP <2500ms（本地直连）",
+      "ok": true,
+      "extra": "LCP=96ms TTFB=4ms load=29ms"
+    },
+    {
+      "name": "CLS <0.1",
+      "ok": true,
+      "extra": "CLS=0.0057"
+    },
+    {
+      "name": "Gibbon 127 tok",
+      "ok": true,
+      "extra": "got 127"
+    },
+    {
+      "name": "Gibbon 注出率>90%",
+      "ok": true,
+      "extra": "100.0% miss=[]"
+    },
+    {
+      "name": "pager==2（Gibbon单页）",
+      "ok": true,
+      "extra": "{\"n\":2,\"top\":4,\"body\":5,\"bottom\":6}"
+    },
+    {
+      "name": "顺序 top<body<bottom",
+      "ok": true,
+      "extra": "{\"top\":4,\"body\":5,\"bottom\":6}"
+    },
+    {
+      "name": "KJV 注出率>80%",
+      "ok": true,
+      "extra": "100.0% miss=[]"
+    },
+    {
+      "name": "2SAMUEL 分页 1/10",
+      "ok": true,
+      "extra": "第1/1章 · 2nd SAMUEL - KJV.txt · 1/10 页（20段）"
+    },
+    {
+      "name": "2SAMUEL pager==2",
+      "ok": true,
+      "extra": "got 2"
+    },
+    {
+      "name": "KJV hath/doth/saith 有中文",
+      "ok": true,
+      "extra": "{\"hath\":\"有\",\"doth\":\"做\",\"saith\":\"说\"}"
+    },
+    {
+      "name": "2SAMUEL 内容词零缺词",
+      "ok": true,
+      "extra": ""
+    },
+    {
+      "name": "翻页多轮 p50/p99（22次）",
+      "ok": true,
+      "extra": "p50=34ms p99=61ms min=32 max=61"
+    },
+    {
+      "name": "翻页后仍 pager==2",
+      "ok": true,
+      "extra": "got 2"
+    },
+    {
+      "name": "按章切换 7章可点",
+      "ok": true,
+      "extra": "chapters=7 p50=50ms p99=62ms"
+    },
+    {
+      "name": "Auto 无key指引",
+      "ok": true,
+      "extra": "Auto 万能模式：无词典/分词包，整句送 LLM 自动识别源语言并分词+注（纯 LLM 费用，按段计费，注意上限；无 key 请去「设置」填写）。本页 Auto 纯 LLM 已注 0/0 词（无词典，纯 LLM 费用，已用 $0.0000 / 上限 $5）。"
+    },
+    {
+      "name": "Auto 导出按钮存在",
+      "ok": true,
+      "extra": "Auto 万能需 key：去设置填 key 后导出（纯 LLM 费用）"
+    },
+    {
+      "name": "导出按钮 阅读页+设置页",
+      "ok": true,
+      "extra": "reader=1 settings=1"
+    },
+    {
+      "name": "金标入口 quality-test/result 可见",
+      "ok": true,
+      "extra": "未测试：点击上方按钮，用当前模型跑 7 语金标。"
+    },
+    {
+      "name": "复核默认关",
+      "ok": true,
+      "extra": "checked=false"
+    }
+  ],
+  "ok": true
+}

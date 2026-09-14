@@ -1,0 +1,6 @@
+node_modules/
+artifacts/*.png
+artifacts/*.log
+artifacts/playwright.json
+test-results/
+playwright-report/

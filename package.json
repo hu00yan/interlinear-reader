@@ -1,0 +1,38 @@
+{
+  "name": "interlinear-reader",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Interlinear reader — Track B: lang packs + dict pipeline + dict loader (static-first, no DB)",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build:dict": "node packages/dict-tools/src/build.mjs",
+    "report:coverage": "node packages/dict-loader/src/coverage.mjs",
+    "test:provider": "node --test \"packages/provider/test/*.test.ts\"",
+    "test": "node --test packages/dict-loader/test/*.test.mjs packages/lang-packs/test/*.test.mjs \"packages/provider/test/*.test.ts\"",
+    "test:loader": "node --test packages/dict-loader/test/*.test.mjs",
+    "test:lang": "node --test packages/lang-packs/test/*.test.mjs",
+    "test:track-d": "node --test tests/unit/*.test.mjs",
+    "dict:proof": "node scripts/dict-proof.mjs",
+    "build:pages": "node scripts/build-check.mjs",
+    "deploy:dict": "node scripts/deploy-dict.mjs --dry-run",
+    "deploy:dict:live": "node scripts/deploy-dict.mjs --live",
+    "dev:stub": "node scripts/stub-server.mjs",
+    "selfcheck": "node scripts/selfcheck-local.mjs",
+    "e2e": "playwright test",
+    "e2e:install": "playwright install --with-deps chromium",
+    "verify": "node scripts/verify.mjs",
+    "dev": "npm run dev --workspace packages/web",
+    "build": "npm run build --workspace packages/web",
+    "preview": "npm run preview --workspace packages/web",
+    "verify:track-a": "npm run verify --workspace packages/web"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,23 @@
+# Track D wrangler config: Workers = shared cache ONLY. No DB, no secrets.
+name = "ilr-cache"
+main = "workers/cache.ts"
+compatibility_date = "2026-08-01"
+
+[vars]
+VERSION = "0.1.0"
+
+[[r2_buckets]]
+binding = "DICT"
+bucket_name = "ilr-dict-v2"
+preview_bucket_name = "ilr-dict-preview"
+
+# Optional durable hit-rate (Analytics Engine, free tier). Uncomment after:
+# `wrangler analytics-engine create ilr_zen` (see DEPLOY.md).
+# [[analytics_engine_datasets]]
+# binding = "ZEN"
+# dataset = "ilr_zen"
+
+[placement]
+mode = "smart"
+
+# Free-tier guardrails: no paid bindings, no Durable Objects, no KV, no queues.

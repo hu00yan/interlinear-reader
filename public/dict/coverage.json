@@ -1,0 +1,160 @@
+{
+  "builtAt": "2026-09-13T01:58:44.962Z",
+  "directions": 14,
+  "rows": [
+    {
+      "lang": "en",
+      "entries": 770612,
+      "tokens": 57,
+      "uniqContent": 36,
+      "zh": {
+        "breadth": 0.1398,
+        "corpus": {
+          "hit": 36,
+          "total": 36,
+          "rate": 1
+        }
+      },
+      "en": {
+        "breadth": 1,
+        "corpus": {
+          "hit": 36,
+          "total": 36,
+          "rate": 1
+        }
+      }
+    },
+    {
+      "lang": "de",
+      "entries": 4340,
+      "tokens": 51,
+      "uniqContent": 30,
+      "zh": {
+        "breadth": 0.012,
+        "corpus": {
+          "hit": 30,
+          "total": 30,
+          "rate": 1
+        }
+      },
+      "en": {
+        "breadth": 1,
+        "corpus": {
+          "hit": 30,
+          "total": 30,
+          "rate": 1
+        }
+      }
+    },
+    {
+      "lang": "fr",
+      "entries": 8219,
+      "tokens": 56,
+      "uniqContent": 33,
+      "zh": {
+        "breadth": 0.0078,
+        "corpus": {
+          "hit": 33,
+          "total": 33,
+          "rate": 1
+        }
+      },
+      "en": {
+        "breadth": 1,
+        "corpus": {
+          "hit": 33,
+          "total": 33,
+          "rate": 1
+        }
+      }
+    },
+    {
+      "lang": "it",
+      "entries": 28251,
+      "tokens": 48,
+      "uniqContent": 35,
+      "zh": {
+        "breadth": 0.0023,
+        "corpus": {
+          "hit": 35,
+          "total": 35,
+          "rate": 1
+        }
+      },
+      "en": {
+        "breadth": 1,
+        "corpus": {
+          "hit": 35,
+          "total": 35,
+          "rate": 1
+        }
+      }
+    },
+    {
+      "lang": "es",
+      "entries": 4497,
+      "tokens": 52,
+      "uniqContent": 32,
+      "zh": {
+        "breadth": 0.014,
+        "corpus": {
+          "hit": 32,
+          "total": 32,
+          "rate": 1
+        }
+      },
+      "en": {
+        "breadth": 1,
+        "corpus": {
+          "hit": 32,
+          "total": 32,
+          "rate": 1
+        }
+      }
+    },
+    {
+      "lang": "ru",
+      "entries": 42288,
+      "tokens": 42,
+      "uniqContent": 32,
+      "zh": {
+        "breadth": 0.0017,
+        "corpus": {
+          "hit": 32,
+          "total": 32,
+          "rate": 1
+        }
+      },
+      "en": {
+        "breadth": 1,
+        "corpus": {
+          "hit": 32,
+          "total": 32,
+          "rate": 1
+        }
+      }
+    },
+    {
+      "lang": "ja",
+      "entries": 465540,
+      "tokens": 65,
+      "uniqContent": 37,
+      "zh": {
+        "breadth": 0.0002,
+        "corpus": {
+          "hit": 37,
+          "total": 37,
+          "rate": 1
+        }
+      },
+      "en": {
+        "breadth": 1,
+        "corpus": {
+          "hit": 37,
+          "total": 37,
+          "rate": 1
+        }
+      }
+    }
+  ]
+}

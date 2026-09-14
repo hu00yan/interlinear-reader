@@ -1,0 +1,49 @@
+# curated-zh.tsv — ES zh补齐 + 语料变位别名 (MIT self-owned).
+# Format: lemma\tzh1;zh2\ten1;en2. --strict safe (non-VERIFY filename).
+viejo	老的;旧的	old
+lee	读	read
+leer	读;阅读	read;to read
+buen	好的	good
+bueno	好;好的	good
+pequeña	小的	little;small
+pequena	小的	little;small
+pequeño	小的	little;small
+cada	每;每个	each;every
+mañana	早晨;明天	morning;tomorrow
+manana	早晨;明天	morning;tomorrow
+aman	爱	love
+amar	爱;热爱	love;to love
+amor	爱	love
+historia	故事;历史	story;history
+historias	故事;历史	story;history
+gran	大的	big
+grande	大;大的	big
+comemos	吃	eat
+comer	吃	eat;to eat
+bebemos	喝	drink
+beber	喝	drink;to drink
+luego	然后;接着	then;afterwards
+a	在;向	at;to
+escribe	写	write
+escribir	写;写作	write;to write
+nueva	新的	new
+nuevo	新;新的	new
+toman	拿;取	take
+tomar	拿;取	take;to take
+gato	猫	cat
+gata	母猫	she-cat
+perro	狗	dog
+casa	房子;家	house;home
+libro	书	book
+escuela	学校	school
+mundo	世界	world
+agua	水	water
+mujer	女人	woman
+noche	夜晚	night
+vida	生活;生命	life
+ciudad	城市	city
+hombre	男人;人	man
+palabra	词;话	word
+nino	孩子;男孩	child;boy
+niño	孩子;男孩	child;boy
+ninos	孩子	child

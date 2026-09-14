@@ -1,0 +1,60 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>verify PASS</title></head><body><h1>verify PASS (2026-09-13T08:29:53.945Z)</h1><table border="1"><tr><th>ok</th><th>step</th><th>detail</th><th>at</th></tr><tr><td>PASS</td><td>fixtures (7 txt + 7-chapter epub)</td><td>fixtures: 7 txt + sample-7lang.epub</td><td>scripts/make-fixture.mjs:1</td></tr><tr><td>PASS</td><td>unit track-d (worker rules + key compat)</td><td>
+  ✔ langs/modes match locked contract (7x2 + A/B/C) (0.085125ms)
+✔ worker rules mirror (2.042459ms)
+ℹ tests 8
+ℹ suites 2
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 63.500416
+
+</td><td>tests/unit/worker-rules.test.mjs:1</td></tr><tr><td>PASS</td><td>web build (tsc+vite+300KB)</td><td>首屏合计 gzip=13.0KB（上限 60KB；懒加载块不计但不得被 modulepreload） | PASS</td><td>packages/web/src/main.ts:1</td></tr><tr><td>PASS</td><td>web headless verify (track A)</td><td>PASS  DOM auto token 有注  — got 2 | PASS  DOM auto 全 from-llm  — got 2 | PASS  DOM auto 无 missing | 全部验收通过</td><td>packages/web/scripts/verify-track-a.ts:1</td></tr><tr><td>PASS</td><td>provider tests (track C)</td><td>a1 matches node:crypto vectors (1.137291ms)
+✔ sha1 output is 40 lowercase hex chars (0.175666ms)
+ℹ tests 59
+ℹ suites 0
+ℹ pass 59
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1881.835708
+
+</td><td>packages/provider/test/security.test.ts:1</td></tr><tr><td>PASS</td><td>quality golden (7-lang local score + mock)</td><td>ins (0.236584ms)
+✔ setup mock (5.811083ms)
+✔ integration: glossBatch(mock) scores 不合格 (28.606042ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 153.812333
+
+</td><td>packages/provider/golden/score.ts:1</td></tr><tr><td>PASS</td><td>dict-loader tests (track B)</td><td>ment→lemmatize→getGloss on real corpus sentences (no throw, misses recorded not thrown) (7.598417ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 82.519333
+
+</td><td>packages/dict-loader/test/loader.test.mjs:1</td></tr><tr><td>PASS</td><td>build-check (dist + shards + no secrets)</td><td>BUILD OK: packages/web/dist shippable, 7-lang .br shards present, no secrets in bundle</td><td>scripts/build-check.mjs:1</td></tr><tr><td>PASS</td><td>budget (first-screen/lang-pack/R2)</td><td>PASS first-screen JS gzip PASS lang pack en (.br) PASS lang pack de (.br) PASS lang pack fr (.br) PASS lang pack it (.br) PASS lang pack es (.br) PASS lang pack ru (.br) PASS lang pack ja (.br) PASS R2 total (.br, Track B only)</td><td>scripts/budget.mjs:1</td></tr><tr><td>PASS</td><td>deploy:dict dry-run (R2 table)</td><td>DRY-RUN (no network): 14 objects, 7 langs, total br=17320808 B (R2 free: 10 GB)</td><td>scripts/deploy-dict.mjs:1</td></tr><tr><td>PASS</td><td>dict-proof (real loader 7x2 zh/en + miss)</td><td>philous zh="\"喜爱\"\"" en="suf. [用于构成名词, 意义相当于-able]表示“能力”, “可能性”, “倾向性”, “适宜性”" miss=miss
+PASS dict de: lemma=alt zh="老" en="A" miss=miss
+PASS dict fr: lemma=a zh="在" en="-able" miss=miss
+PASS dict it: lemma=acqua zh="水" en="-morph" miss=miss
+PASS dict es: lemma=a zh="在" en="how are you?" miss=miss
+PASS dict ru: lemma=большои zh="大" en="FPV drone" miss=miss
+PASS dict ja: lemma=あたらしい zh="新" en="tilde symbol" miss=miss
+PASS dict ja ja->en 常用词: 家->en hit "house" (scripts/dict-proof.mjs)
+PASS dict ja ja->zh 种子词: 家->zh hit "家" (scripts/dict-proof.mjs)
+PASS dict ja ja->en 常用词: 世界->en hit "world" (scripts/dict-proof.mjs)
+PASS dict ja ja->en JMdict_e: 行動->en hit "action" (scripts/dict-proof.mjs)
+PASS dict ja ja->zh 缺词走LLM(不编造/不回退en): 行動->zh miss null (scripts/dict-proof.mjs)
+PASS dict ja ja->zh 缺词走LLM: 投票->zh miss null (scripts/dict-proof.mjs)
+PASS dict ja miss进LLM队列: ja:zh:行動已记录 (packages/dict-loader/src/index.mjs:60)
+DICT-PROOF OK: 7 langs x zh/en hit + miss (via http://127.0.0.1:55721/dict)</td><td>packages/dict-loader/src/index.mjs:60</td></tr><tr><td>PASS</td><td>e2e (7-lang/dict/modes/mock-LLM/hygiene/shots)</td><td>  2 passed (4.0s) | npm warn allow-scripts .npmrc allow-scripts setting is being ignored because --allow-scripts was passed on the command line</td><td>tests/e2e/quality.spec.mjs:6</td></tr><tr><td>PASS</td><td>selfcheck (CI poll)</td><td>langs=7 shardsOk=7 hitRate=0</td><td>workers/cache.ts:1</td></tr></table></body></html>

@@ -1,0 +1,116 @@
+{
+  "version": "0.1.0",
+  "date": "2026-09-13T08:29:53.945Z",
+  "ok": true,
+  "durationMs": 12829,
+  "contract": {
+    "langs": [
+      "en",
+      "de",
+      "fr",
+      "it",
+      "es",
+      "ru",
+      "ja"
+    ],
+    "targets": [
+      "zh",
+      "en"
+    ],
+    "modes": [
+      "A",
+      "B",
+      "C"
+    ],
+    "r2Layout": "dict/{lang}/{target}.dict.br",
+    "owners": "types/shard/hash/settings locked by tracks A-C; mirrored in CONTRACT.md"
+  },
+  "steps": [
+    {
+      "name": "fixtures (7 txt + 7-chapter epub)",
+      "ok": true,
+      "detail": "fixtures: 7 txt + sample-7lang.epub",
+      "at": "scripts/make-fixture.mjs:1"
+    },
+    {
+      "name": "unit track-d (worker rules + key compat)",
+      "ok": true,
+      "detail": "\n  ✔ langs/modes match locked contract (7x2 + A/B/C) (0.085125ms)\n✔ worker rules mirror (2.042459ms)\nℹ tests 8\nℹ suites 2\nℹ pass 8\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 63.500416\n\n",
+      "at": "tests/unit/worker-rules.test.mjs:1"
+    },
+    {
+      "name": "web build (tsc+vite+300KB)",
+      "ok": true,
+      "detail": "首屏合计 gzip=13.0KB（上限 60KB；懒加载块不计但不得被 modulepreload） | PASS",
+      "at": "packages/web/src/main.ts:1"
+    },
+    {
+      "name": "web headless verify (track A)",
+      "ok": true,
+      "detail": "PASS  DOM auto token 有注  — got 2 | PASS  DOM auto 全 from-llm  — got 2 | PASS  DOM auto 无 missing | 全部验收通过",
+      "at": "packages/web/scripts/verify-track-a.ts:1"
+    },
+    {
+      "name": "provider tests (track C)",
+      "ok": true,
+      "detail": "a1 matches node:crypto vectors (1.137291ms)\n✔ sha1 output is 40 lowercase hex chars (0.175666ms)\nℹ tests 59\nℹ suites 0\nℹ pass 59\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 1881.835708\n\n",
+      "at": "packages/provider/test/security.test.ts:1"
+    },
+    {
+      "name": "quality golden (7-lang local score + mock)",
+      "ok": true,
+      "detail": "ins (0.236584ms)\n✔ setup mock (5.811083ms)\n✔ integration: glossBatch(mock) scores 不合格 (28.606042ms)\nℹ tests 7\nℹ suites 0\nℹ pass 7\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 153.812333\n\n",
+      "at": "packages/provider/golden/score.ts:1"
+    },
+    {
+      "name": "dict-loader tests (track B)",
+      "ok": true,
+      "detail": "ment→lemmatize→getGloss on real corpus sentences (no throw, misses recorded not thrown) (7.598417ms)\nℹ tests 8\nℹ suites 0\nℹ pass 8\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 82.519333\n\n",
+      "at": "packages/dict-loader/test/loader.test.mjs:1"
+    },
+    {
+      "name": "build-check (dist + shards + no secrets)",
+      "ok": true,
+      "detail": "BUILD OK: packages/web/dist shippable, 7-lang .br shards present, no secrets in bundle",
+      "at": "scripts/build-check.mjs:1"
+    },
+    {
+      "name": "budget (first-screen/lang-pack/R2)",
+      "ok": true,
+      "detail": "PASS first-screen JS gzip PASS lang pack en (.br) PASS lang pack de (.br) PASS lang pack fr (.br) PASS lang pack it (.br) PASS lang pack es (.br) PASS lang pack ru (.br) PASS lang pack ja (.br) PASS R2 total (.br, Track B only)",
+      "at": "scripts/budget.mjs:1"
+    },
+    {
+      "name": "deploy:dict dry-run (R2 table)",
+      "ok": true,
+      "detail": "DRY-RUN (no network): 14 objects, 7 langs, total br=17320808 B (R2 free: 10 GB)",
+      "at": "scripts/deploy-dict.mjs:1"
+    },
+    {
+      "name": "dict-proof (real loader 7x2 zh/en + miss)",
+      "ok": true,
+      "detail": "philous zh=\"\\\"喜爱\\\"\\\"\" en=\"suf. [用于构成名词, 意义相当于-able]表示“能力”, “可能性”, “倾向性”, “适宜性”\" miss=miss\nPASS dict de: lemma=alt zh=\"老\" en=\"A\" miss=miss\nPASS dict fr: lemma=a zh=\"在\" en=\"-able\" miss=miss\nPASS dict it: lemma=acqua zh=\"水\" en=\"-morph\" miss=miss\nPASS dict es: lemma=a zh=\"在\" en=\"how are you?\" miss=miss\nPASS dict ru: lemma=большои zh=\"大\" en=\"FPV drone\" miss=miss\nPASS dict ja: lemma=あたらしい zh=\"新\" en=\"tilde symbol\" miss=miss\nPASS dict ja ja->en 常用词: 家->en hit \"house\" (scripts/dict-proof.mjs)\nPASS dict ja ja->zh 种子词: 家->zh hit \"家\" (scripts/dict-proof.mjs)\nPASS dict ja ja->en 常用词: 世界->en hit \"world\" (scripts/dict-proof.mjs)\nPASS dict ja ja->en JMdict_e: 行動->en hit \"action\" (scripts/dict-proof.mjs)\nPASS dict ja ja->zh 缺词走LLM(不编造/不回退en): 行動->zh miss null (scripts/dict-proof.mjs)\nPASS dict ja ja->zh 缺词走LLM: 投票->zh miss null (scripts/dict-proof.mjs)\nPASS dict ja miss进LLM队列: ja:zh:行動已记录 (packages/dict-loader/src/index.mjs:60)\nDICT-PROOF OK: 7 langs x zh/en hit + miss (via http://127.0.0.1:55721/dict)",
+      "at": "packages/dict-loader/src/index.mjs:60"
+    },
+    {
+      "name": "e2e (7-lang/dict/modes/mock-LLM/hygiene/shots)",
+      "ok": true,
+      "detail": "  2 passed (4.0s) | npm warn allow-scripts .npmrc allow-scripts setting is being ignored because --allow-scripts was passed on the command line",
+      "at": "tests/e2e/quality.spec.mjs:6"
+    },
+    {
+      "name": "selfcheck (CI poll)",
+      "ok": true,
+      "detail": "langs=7 shardsOk=7 hitRate=0",
+      "at": "workers/cache.ts:1"
+    }
+  ],
+  "artifacts": [
+    "artifacts/verify-report.json",
+    "artifacts/verify-report.html",
+    "artifacts/shot-reader.png",
+    "artifacts/shot-settings.png",
+    "artifacts/e2e.log",
+    "artifacts/selfcheck.json"
+  ]
+}
