@@ -8,6 +8,10 @@ import { wordCacheKey } from '../lib/hash.js';
 import { cacheGet, cacheSet } from '../lib/cache.js';
 import { mockLookup } from './mock-dict.js';
 import { deinflectJa, isJaKanaFragment } from './ja-inflect.mjs';
+// en 过剥校验（owner: packages/lang-packs/src/en.mjs）：pack lemmatizer 的 stem 可能
+// 砍到另一个真词（limerence->limer），候选里必须校验后才可当查词键。
+// @ts-expect-error — TrackB .mjs 暂无类型声明（同 reader/langpacks/en.ts 口径）
+import { isTrustedEnStem } from '../../../lang-packs/src/en.mjs';
 type CompactPair = Map<string, string[]>;
 const shardMem = new Map<string, CompactPair | null>();
 /** 在途 loadPair 去重表（见 loadPair 注释；完成即删，不缓存失败语义之外的任何东西） */
@@ -333,25 +337,37 @@ async function loadPair(lang: SourceLang, target: TargetLang): Promise<CompactPa
   return p;
 }
 
-/** 查词键序（原形优先，候选只增不减）：抽出供单注/全注复用。单字假名返回 null（诚实 miss）。 */
+/** 查词键序（原形优先，候选只增不减）：抽出供单注/全注复用。单字假名返回 null（诚实 miss）。
+ *
+ * en 过剥门禁：语言包 lemmatizer 的 stem 只有在 surface 能由它合法屈折/派生得到时
+ * 才可作为候选（isTrustedEnStem）。Porter 会把 limerence 砍成 limer，而 limer 恰是真词——
+ * 若盲信 stem，候选首个键就命中无关释义，surface 原形根本没机会被查。被拒的 stem 直接
+ * 丢弃（宁可 miss 走 LLM，也不展示错误释义），morphology 改从真实 surface 展开。 */
 function lookupKeys(lang: SourceLang, lemma: string, surface?: string): string[] | null {
-  // 多试（与 TrackB getGloss 双试+单数回退对齐）：normalize lemma -> 古英语现代形 ->
-  // 屈折/派生形（en）-> surface 原形（TrackB 真包过剥 base 形时兜底，如 de Haus->hau，
-  // surface Haus 仍命中；lemma 优先，surface 只做最后回退）。
-  // 根因：Westminster 页 of 命中而 Westminster/Confession 全 miss——除专名缺词外，
-  // founded/confessions/introduction 类屈折/派生只查原形必 miss，需双试派生形（如 founded->found）。
-  const keys = [normalize(lang, lemma)];
-  for (const c of archaicCandidates(lang, lemma)) {
-    const nk = normalize(lang, c);
+  const keys: string[] = [];
+  const push = (raw: string): void => {
+    const nk = normalize(lang, raw);
     if (nk && !keys.includes(nk)) keys.push(nk);
+  };
+  const surfaceKey = surface ? normalize(lang, surface) : '';
+  const lemmaKey = normalize(lang, lemma);
+  // 无 surface / 原形即 stem / 已通过形态学校验 -> 信任 lemma；否则丢弃。
+  const trustedLemma = lang !== 'en' || !surfaceKey || lemmaKey === surfaceKey
+    || isTrustedEnStem(surfaceKey, lemmaKey);
+  if (trustedLemma) push(lemma);
+  // 被拒的 en stem 不再参与 morphology；改用真实 surface 展开（原形优先命中）。
+  const base = lang === 'en' && !trustedLemma && surfaceKey ? surfaceKey : lemma;
+
+  for (const c of archaicCandidates(lang, base)) {
+    push(c);
   }
-  for (const c of inflectionCandidates(lang, lemma)) {
-    if (c && !keys.includes(c)) keys.push(c);
+  for (const c of inflectionCandidates(lang, base)) {
+    push(c);
   }
   // 德语屈折展开（动词人称/名词格/形容词尾；原形优先，见 germanCandidates）。
   if (lang === 'de') {
     for (const c of germanCandidates(lemma)) {
-      if (c && !keys.includes(c)) keys.push(c);
+      push(c);
     }
   }
   // 日语活用展开（deinflectJa，原形优先）：買いました→買う、高かった→高い。
@@ -365,15 +381,15 @@ function lookupKeys(lang: SourceLang, lemma: string, surface?: string): string[]
     if (isJaKanaFragment(surface ?? lemma)) return null;
     const tryDeinflect = (form: string): void => {
       for (const c of deinflectJa(form).slice(0, 8)) {
-        const nk = normalize(lang, c);
-        if (nk && !keys.includes(nk)) keys.push(nk);
+        push(c);
       }
     };
     tryDeinflect(lemma);
     if (surface && surface !== lemma) tryDeinflect(surface);
   }
   // Common English pack lemmatizers intentionally strip suffixes; restore
-  // conservative dictionary candidates before declaring a miss.
+  // conservative dictionary candidates before declaring a miss. 该表按 stem 键恢复
+  // 合法派生词；被过剥门禁拒绝的 stem 不在此表内，仍然落选。
   if (lang === 'en') {
     const suffixCandidates: Record<string, string[]> = {
       introduct: ['introduction'], westminst: ['westminster'], chapt: ['chapter'],
@@ -381,12 +397,9 @@ function lookupKeys(lang: SourceLang, lemma: string, surface?: string): string[]
       argu: ['argue'], confess: ['confession'], excelleth: ['excel'],
       occindent: ['occidental'], dispell: ['dispel'],
     };
-    for (const c of suffixCandidates[normalize(lang, lemma)] ?? []) if (!keys.includes(c)) keys.push(c);
+    for (const c of suffixCandidates[lemmaKey] ?? []) if (!keys.includes(c)) keys.push(c);
   }
-  if (surface) {
-    const sk = normalize(lang, surface);
-    if (sk && !keys.includes(sk)) keys.push(sk);
-  }
+  if (surfaceKey) push(surfaceKey);
   return keys;
 }
 

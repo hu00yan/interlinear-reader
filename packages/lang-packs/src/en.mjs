@@ -148,6 +148,65 @@ function stem(w) {
   return s;
 }
 
+// A surface may legitimately carry one of these tails on top of a candidate
+// lemma; the value is the minimum stem length for that tail to be a plausible
+// inflection/derivation rather than an over-strip.
+// - Inflectional tails (plural/past/progressive) keep short stems: "cats"->cat.
+// - Derivational tails can split a word into a *different* real word, so they
+//   need a longer root: "limerence"->limer (5 < 6) is rejected while
+//   "conference"->confer (6) is kept. Only a single tail is allowed: Porter
+//   applies derivational steps in a chain, and a chained tail such as the
+//   "...fication" of floccinaucinihilipilification is exactly the multi-step
+//   over-strip that hijacks an unrelated dictionary entry.
+const TRUSTED_TAILS = new Map([
+  ["sses", 2], ["ies", 2], ["ied", 2], ["ying", 2], ["ing", 2], ["eed", 3],
+  ["es", 3], ["ed", 2], ["d", 2], ["ly", 3], ["s", 3], ["'s", 2], ["'", 2],
+  ["ation", 5], ["tion", 5], ["ion", 5], ["ement", 5], ["ment", 4],
+  ["ness", 4], ["ance", 6], ["ence", 6], ["able", 5], ["ible", 5],
+  ["ical", 5], ["ally", 5], ["ity", 5], ["iti", 5], ["ive", 4], ["ous", 4],
+  ["ize", 4], ["ism", 5], ["ful", 4], ["ate", 4], ["ic", 4], ["al", 4],
+  ["er", 4], ["est", 4], ["ant", 5], ["ent", 5], ["e", 4],
+]);
+
+function foldEn(s) {
+  return String(s ?? "").trim().toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+/** Is `stem` a legitimate lemma for `surface`, or an over-strip?
+ * Porter stemming conflates derivations, so a legitimate-looking reduction can
+ * land on a different real word (limerence->limer, durable->dur, after->aft).
+ * A stem is trusted only when the surface is reachable from it by a single
+ * inflectional/derivational rule (or it is one of the irregular forms). */
+export function isTrustedEnStem(surface, stem) {
+  const s = foldEn(surface);
+  const t = foldEn(stem);
+  if (!s || !t) return false;
+  if (s === t) return true;
+  if (EXCEPTIONS.get(s) === t) return true;
+  // Letter-changing regular inflections (STEP1 ies->y / -ied / -ying).
+  if (s.endsWith("ies") && t === s.slice(0, -3) + "y") return true;
+  if (s.endsWith("ied") && t === s.slice(0, -3) + "y") return true;
+  if (s.endsWith("ying") && t === s.slice(0, -4) + "y") return true;
+  // -ing/-ed with silent-e restore or final-consonant undoubling (moving->move,
+  // stopped->stop), mirroring what stem() itself is allowed to produce here.
+  if (s.endsWith("ing") && s.length > 5) {
+    const b = s.slice(0, -3);
+    if (t === b || t === b + "e" || (/(.)\1$/.test(b) && t === b.slice(0, -1))) return true;
+  }
+  if (s.endsWith("ed") && s.length > 4) {
+    const b = s.slice(0, -2);
+    if (t === b || t === b + "e" || (/(.)\1$/.test(b) && t === b.slice(0, -1))) return true;
+  }
+  if (s.endsWith("eed") && s.length > 4 && t === s.slice(0, -1)) return true;
+  // Otherwise the stem must be the surface minus exactly one allowed tail,
+  // and long enough for that tail to be a real derivation.
+  if (!s.startsWith(t)) return false;
+  const tail = s.slice(t.length);
+  const min = TRUSTED_TAILS.get(tail);
+  return min !== undefined && t.length >= min;
+}
+
 export function segment(text) {
   return segmentLatin(text);
 }
@@ -157,7 +216,11 @@ export function lemmatize(token) {
   const lower = token.toLowerCase().replace(/^['’]+|['’]+$/g, "");
   const ex = applyExceptions(lower, EXCEPTIONS);
   if (ex) return ex;
-  return stem(lower);
+  const s = stem(lower);
+  // 词形还原不是词干化：Porter 会把派生词砍到另一个真词（limerence->limer），
+  // 使词典查词被无关词抢答。只在 surface 是 stem 的合法屈折/派生时才采用 stem，
+  // 否则保留 surface，让 loader 按原形查（miss 也比错误释义诚实）。
+  return isTrustedEnStem(lower, s) ? s : lower;
 }
 
 export const stopwords = new Set(

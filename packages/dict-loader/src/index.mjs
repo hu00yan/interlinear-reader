@@ -17,6 +17,10 @@
 
 import { normalizeLemma, shardFor, TRACK_B_LANGS, TRACK_B_TARGETS } from "./shard.mjs";
 import { cacheGet, cacheSet } from "./cache.mjs";
+// en over-strip guard (owner: packages/lang-packs/src/en.mjs). The stem fallback
+// must not accept a stem that isn't a legitimate inflection/derivation of the
+// surface — otherwise a coincidental real word (limerence->limer) wins.
+import { isTrustedEnStem } from "../../lang-packs/src/en.mjs";
 
 export const SUPPORTED_LANGS = TRACK_B_LANGS;
 export const SUPPORTED_TARGETS = TRACK_B_TARGETS;
@@ -96,6 +100,8 @@ export async function getGloss(lang, target, lemma, opt = {}) {
       }
     } catch { stemKey = null; }
   }
+  // en: 只在 stem 是 key 的合法屈折/派生时才使用（过剥形可能是真词，见 en.mjs）。
+  if (stemKey && lang === "en" && !isTrustedEnStem(key, stemKey)) stemKey = null;
   let sgKey = null;
   if (["en", "de", "fr", "it", "es"].includes(lang) && key.length > 3 && /[sx]$/.test(key)) {
     const cand = key.slice(0, -1);

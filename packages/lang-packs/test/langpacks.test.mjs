@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { segment, lemmatize, isStopword, SUPPORTED_LANGS } from "../src/index.mjs";
+import { isTrustedEnStem } from "../src/en.mjs";
 import * as ja from "../src/ja.mjs";
 
 test("all 7 langs: segment/lemmatize/stopwords smoke", () => {
@@ -49,6 +50,46 @@ test("stopwords", () => {
   assert.equal(isStopword("fr", "les"), true);
   assert.equal(isStopword("ja", "は"), true);
   assert.equal(isStopword("ja", "本"), false);
+});
+
+// 过剥回归（issue #1）：Porter stem 会把派生词砍到另一个真词（limerence->limer）。
+// lemmatize 是词形还原不是词干化：只有 surface 能由 stem 合法屈折/派生得到才采用，
+// 否则保留 surface（dict 查不到就 miss，绝不因 coincidental 真词展示错误释义）。
+test("en over-strip guard: derivational stem only when morphologically valid", () => {
+  // 过剥 -> 保留 surface（这些 stem 恰好都是真词）
+  assert.equal(lemmatize("en", "limerence"), "limerence");
+  assert.equal(lemmatize("en", "durable"), "durable");
+  assert.equal(lemmatize("en", "after"), "after");
+  assert.equal(lemmatize("en", "dure"), "dure");
+  assert.equal(lemmatize("en", "aft"), "aft");
+  assert.equal(lemmatize("en", "floccinaucinihilipilification"), "floccinaucinihilipilification");
+  // 独立词仍按原形（limer/dure/aft 都是词典真词，保留正常释义）
+  assert.equal(lemmatize("en", "limer"), "limer");
+  // 正常屈折仍还原
+  assert.equal(lemmatize("en", "cats"), "cat");
+  assert.equal(lemmatize("en", "walked"), "walk");
+  assert.equal(lemmatize("en", "houses"), "house");
+  assert.equal(lemmatize("en", "studies"), "study");
+  assert.equal(lemmatize("en", "running"), "run");
+  assert.equal(lemmatize("en", "cities"), "city");
+  assert.equal(lemmatize("en", "children"), "child");
+  // 合法派生档仍可用（不是整档禁掉）：stem 通过单后缀+长度校验
+  assert.equal(lemmatize("en", "introduction"), "introduct");
+  assert.equal(lemmatize("en", "westminster"), "westminst");
+  assert.equal(lemmatize("en", "government"), "govern");
+  // 校验函数口径
+  assert.equal(isTrustedEnStem("cats", "cat"), true);
+  assert.equal(isTrustedEnStem("walked", "walk"), true);
+  assert.equal(isTrustedEnStem("children", "child"), true);
+  assert.equal(isTrustedEnStem("confessions", "confess"), false); // 链式派生：交给 loader 的复数规则
+  assert.equal(isTrustedEnStem("limerence", "limer"), false);
+  assert.equal(isTrustedEnStem("durable", "dur"), false);
+  assert.equal(isTrustedEnStem("after", "aft"), false);
+  assert.equal(isTrustedEnStem("conference", "confer"), true); // -ence 需 stem>=6
+  assert.equal(isTrustedEnStem("floccinaucinihilipilification", "floccinaucinihilipilif"), false);
+  // 古英语不被误伤（identity / 后缀不在过剥档）
+  assert.equal(lemmatize("en", "hath"), "hath");
+  assert.equal(lemmatize("en", "thou"), "thou");
 });
 
 test("ja loadLindera wires v6 API via injected importer (no network)", async () => {
