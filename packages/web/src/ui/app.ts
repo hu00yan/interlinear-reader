@@ -35,7 +35,7 @@ import {
 import { isProperNounSurface } from '../dict/dict-loader.js';
 import { detectParaLang, normalizeLangTag } from '../reader/langdetect.js';
 import { autoSegmentGloss, chunkByChars, glossBatchPage, testConnection } from '../llm/provider.js';
-import { estimateCostUSD, formatUSD } from '../lib/cost.js';
+import { estimateCostUSD, estimateTokens, formatUSD } from '../lib/cost.js';
 import { addVocab, isKnown, listVocab, removeVocab, setKnown, exportVocabJSON } from '../vocab/store.js';
 import { parseTxt } from '../ingest/txt.js';
 
@@ -929,7 +929,9 @@ function paginateChapterFlow(
 /**
  * 一页缺词的 LLM 批量回填：按字符预算切块，**每块一次请求**（glossBatchPage），
  * 章节上下文随行选义。返回 override（段文本 -> lemma->gloss）与本次花费。
- * 关键口径：调用方绝不 await 术语表；术语表只从缓存读取，缺失就用空表继续。
+ * - 每块返回即回调 `onPartial(override, spent)`：调用方立刻把已到的释义填进页面
+ *   （增量渲染），不必等整页/整批做完——大请求与小请求的网络延迟一样，能填就先填。
+ * - 术语表由调用方决定：A 模式并行后台跑（不等），C 模式先等（整页 LLM 需一致性）。
  */
 async function fetchGlossBatches(
   s: Settings,
@@ -938,6 +940,7 @@ async function fetchGlossBatches(
   jobs: { text: string; missing: string[] }[],
   context: string,
   glossary: Record<string, string>,
+  onPartial?: (override: Map<string, Record<string, string>>, spent: number) => void,
 ): Promise<{ override: Map<string, Record<string, string>>; spent: number; lastErr: string }> {
   const override = new Map<string, Record<string, string>>();
   let spent = 0;
@@ -964,11 +967,35 @@ async function fetchGlossBatches(
         if (g && Object.keys(g).length) override.set(j.text, g);
       });
       spent += r.costUSD;
+      onPartial?.(override, spent);
     } catch (e) {
       lastErr = (e as Error).message;
     }
   }
   return { override, spent, lastErr };
+}
+
+/**
+ * 把 override 的 LLM 释义就地写进本页已注出的 token（token 边界不变，故无需重切）。
+ * 只补 LLM 给到的词，词典已有释义保持不动——这正是不重建 DOM 就能增量重绘的前提。
+ */
+function applyOverrideToSlice(slice: AnnotatedParagraph[], override: Map<string, Record<string, string>>): number {
+  let filled = 0;
+  for (const para of slice) {
+    const m = override.get(para.text);
+    if (!m) continue;
+    for (const t of para.tokens) {
+      if (!t.isWord) continue;
+      const g = m[t.lemma] ?? m[t.lemma.toLowerCase()] ?? m[t.surface] ?? m[t.surface.toLowerCase()];
+      if (g) {
+        t.gloss = g;
+        t.glossSource = 'llm';
+        t.glosses = null;
+        filled += 1;
+      }
+    }
+  }
+  return filled;
 }
 
 // ---------------- 阅读 ----------------
@@ -1253,8 +1280,6 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
     kind: 'a' | 'c';
     jobs: { text: string; missing: string[] }[];
     context: string;
-    pack: Awaited<ReturnType<typeof loadLanguagePack>>;
-    knownFn: (lemma: string) => boolean;
     glossaryKey: string;
     next: { jobs: { text: string; missing: string[] }[]; context: string } | null;
   } | null = null;
@@ -1805,21 +1830,35 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
         }
         return out;
       };
-      // 本页附近原文（局部上文，供一词多义选义）；术语表另行从缓存读取，绝不阻塞。
+      // 请求上下文（输入，不是输出）：整章原文，超出预算就从本页两侧由近到远收。
+      // 输入 token 便宜、几乎不增加首字延迟，而选义质量随上下文单调变好；实测一章
+      // 通常 1-3K tok，等于「整章随请求发过去」。输出（生成）才是延迟/费用主项，
+      // 所以注出目标仍按页切（见 nextPageJobs / fetchGlossBatches）。
+      const CONTEXT_TOKEN_BUDGET = 16000;
       const contextOfSlices = (slices: FlowSlice[]): string => {
-        const ois: number[] = [];
+        const cur: number[] = [];
         const seen = new Set<number>();
         for (const sl of slices) {
           if (seen.has(sl.para)) continue;
           seen.add(sl.para);
           const oi = sl.para >= 0 && sl.para < flowOrig.length ? flowOrig[sl.para] : -1;
-          if (oi >= 0) ois.push(oi);
+          if (oi >= 0) cur.push(oi);
         }
-        if (!ois.length) return '';
-        const lo = Math.max(0, Math.min(...ois) - 8);
-        const hi = Math.min(paragraphs.length, Math.max(...ois) + 9);
-        const context = paragraphs.slice(lo, hi).join('\n');
-        return context.length > 4000 ? context.slice(0, 4000) + '…' : context;
+        if (!cur.length) return '';
+        const join = (a: number, b: number): string => paragraphs.slice(a, b + 1).join('\n');
+        let from = Math.min(...cur);
+        let to = Math.max(...cur);
+        if (estimateTokens(join(from, to)) > CONTEXT_TOKEN_BUDGET) return join(from, to);
+        // 由本页向两侧同时扩：近处上下文优先保住，预算满即停。
+        for (;;) {
+          const nf = from > 0 ? from - 1 : from;
+          const nt = to < paragraphs.length - 1 ? to + 1 : to;
+          if (nf === from && nt === to) break;
+          if (estimateTokens(join(nf, nt)) > CONTEXT_TOKEN_BUDGET) break;
+          from = nf;
+          to = nt;
+        }
+        return join(from, to);
       };
       /** 下一页的注出任务（预取用）：翻页即命中句缓存，注出不再等网络。跨章不预取。 */
       const nextPageJobs = (kind: 'a' | 'c'): { jobs: { text: string; missing: string[] }[]; context: string } | null => {
@@ -1841,8 +1880,6 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
           kind,
           jobs,
           context: contextOfSlices(cur),
-          pack,
-          knownFn,
           glossaryKey: `${book.title}::${book.lang}::${s.target}`,
           next: nextPageJobs(kind),
         };
@@ -2148,23 +2185,54 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
     });
     main.appendChild(exit);
   }
-  // 页面 LLM 回填（首绘之后异步跑，不挡正文）：本页缺词/整句批量**一次请求**（按预算切块），
-  // 只读术语表缓存（在途也不等，避免整书提炼把翻页饿死）；成功后就地增量补 gloss。
+  // 页面 LLM 回填（首绘之后异步跑，不挡正文）：本页缺词/整句批量按预算切块，
+  // **每块返回即增量填词**（大请求与小请求的网络延迟一样，能填就先填）。
+  // 术语表口径（用户口径）：
+  // - A：与词典同屏即刻并行后台提炼，不等（本页缺词回填不需要它）；
+  // - C：整页由 LLM 注词，术语表影响全书一致性，先等它（失败则冷却后空表继续）。
   // 随后预取下一页的注出，翻到下一页即命中句缓存，注出不再等网络。
   const refreshCost = (): void => {
     cost.innerHTML =
       `费用 ${formatUSD(s.costUsedUSD)} / 上限 $${s.costCapUSD}` +
       `<span class="lbl-ext">${book.lang === 'auto' ? ' · Auto 纯 LLM 分词+注 · key 仅存 localStorage' : ' · key 仅存 localStorage'}</span>`;
   };
-  // 术语表只在 A/C（有 key）起，且必须晚于首屏回填：本页正文优先占第一轮往返。
   const wantsGlossary = !!s.apiKey && s.bookGlossary && (s.mode === Mode.A || s.mode === Mode.C);
   if (llmBackfill && llmBackfill.jobs.length > 0) {
     const backfill = llmBackfill;
     llmBackfill = null;
+    const modeLabel = backfill.kind === 'c' ? 'C 模式' : 'A 模式';
     void (async () => {
       const mySeq = seq;
+      // 增量填词：每块返回就 patch 一次；失败回退整列重画兜底。
+      const applyPartial = (override: Map<string, Record<string, string>>, spent: number): void => {
+        if (mySeq !== readerSeq) return;
+        if (spent > 0) {
+          s.costUsedUSD = +(s.costUsedUSD + spent).toFixed(4);
+          save();
+        }
+        if (applyOverrideToSlice(slice, override) === 0) return;
+        state.annotated = slice;
+        // 增量重绘：token 边界（同包同文本）不变，只改 .gloss 文本/类名，不重建列 DOM。
+        if (patchPaintedGlosses) patchPaintedGlosses();
+        else paintedCols = paintColumns?.() ?? paintedCols;
+        paintNotice?.();
+        refreshCost();
+        updatePagerChrome?.();
+      };
       try {
-        const glossary = bookGlossaryCache.get(backfill.glossaryKey) ?? {};
+        let glossary = bookGlossaryCache.get(backfill.glossaryKey) ?? {};
+        if (wantsGlossary && backfill.kind === 'c' && !Object.keys(glossary).length) {
+          // C 模式先等术语表（首访一次；失败有冷却，不会每页重启）。
+          try {
+            glossary = await ensureBookGlossary(book, s, save);
+          } catch {
+            glossary = {};
+          }
+          if (mySeq !== readerSeq) return;
+        } else if (wantsGlossary && backfill.kind === 'a') {
+          // A 模式并行起术语表，不等：词典已同屏，缺词回填与其同时进行。
+          void ensureBookGlossary(book, s, save);
+        }
         const { override, spent, lastErr } = await fetchGlossBatches(
           s,
           book.lang,
@@ -2172,40 +2240,17 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
           backfill.jobs,
           backfill.context,
           glossary,
+          applyPartial,
         );
         if (mySeq !== readerSeq) return;
-        if (spent > 0) {
-          s.costUsedUSD = +(s.costUsedUSD + spent).toFixed(4);
-          save();
-        }
-        if (override.size === 0) {
-          if (lastErr) {
-            state.error = `${backfill.kind === 'c' ? 'C 模式' : 'A 模式'} LLM 失败（已保留词典结果）：${lastErr}`;
-            errBox.textContent = state.error;
-          }
-        } else {
-          const fresh = await annotateParagraphs(backfill.pack, book.lang, s.target, slice.map((p) => p.text), backfill.knownFn, override);
-          const used = new Map<string, number>();
-          for (const p of slice) {
-            const list = fresh.filter((f) => f.text === p.text);
-            const n = used.get(p.text) ?? 0;
-            const rep = list[n];
-            used.set(p.text, n + 1);
-            if (rep) p.tokens = rep.tokens;
-          }
-          state.annotated = slice;
-          if (mySeq !== readerSeq) return;
-          // 增量重绘：token 边界（同包同文本）不变，只改 .gloss 文本/类名；失败回退整列重画。
-          if (patchPaintedGlosses) patchPaintedGlosses();
-          else paintedCols = paintColumns?.() ?? paintedCols;
-          paintNotice?.();
-          refreshCost();
-          updatePagerChrome?.();
+        if (override.size === 0 && lastErr) {
+          state.error = `${modeLabel} LLM 失败（已保留词典结果）：${lastErr}`;
+          errBox.textContent = state.error;
         }
         // 预取下一页：只入缓存、不改 DOM；失败静默（用户翻到该页时会照常自己补）。
         if (backfill.next && backfill.next.jobs.length && mySeq === readerSeq && s.costUsedUSD < s.costCapUSD) {
           const nxt = backfill.next;
-          void fetchGlossBatches(s, book.lang, s.target, nxt.jobs, nxt.context, bookGlossaryCache.get(backfill.glossaryKey) ?? {})
+          void fetchGlossBatches(s, book.lang, s.target, nxt.jobs, nxt.context, glossary)
             .then((r) => {
               if (r.spent > 0) {
                 s.costUsedUSD = +(s.costUsedUSD + r.spent).toFixed(4);
@@ -2217,9 +2262,6 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
         }
       } catch {
         // 首绘已出，回填失败静默（整页全失败已在上挂条）。
-      } finally {
-        // 术语表让位给本页正文：首屏回填结束后才起（缓存/在途复用，不会重复提炼）。
-        if (wantsGlossary) void ensureBookGlossary(book, s, save);
       }
     })();
   } else if (wantsGlossary) {
