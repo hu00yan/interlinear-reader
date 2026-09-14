@@ -229,6 +229,8 @@ async function pivotLookup(
   surface?: string,
 ): Promise<string | null> {
   if (lang === 'en' || target === 'en') return null;
+  // 日语单假名碎片永不桥接：は→en feather→zh 羽毛这类串味与直查同罪（诚实门禁锁）。
+  if (lang === 'ja' && isJaKanaFragment(surface ?? lemma)) return null;
   const mid = await loadPair(lang, 'en');
   if (!mid || mid.size < 500) return null;
   const enMap = await loadPair('en', target);

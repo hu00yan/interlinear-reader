@@ -66,6 +66,17 @@ test("deinflect: 連用形裸语干兜底（链式无产出才猜，精确优先
   assert.ok(!deinflectJa("家").includes("家"), "家猜测不含自身");
 });
 
+test("order: 精确候选永远先于兜底（串味回归锁）", () => {
+  // 開ければ 的第一候选必须是開ける：旧 EU 映射先出開く，而開く是真词条，
+  // 调用方会直接注出错误答案（比缺词坏）。
+  assert.equal(deinflectJa("開ければ")[0], "開ける");
+  assert.ok(deinflectJa("開ければ").indexOf("開ける") < deinflectJa("開ければ").indexOf("開く"));
+  // KU 单字干：書ける第一候选是書く，不是裸く。
+  assert.equal(deinflectJa("書ける")[0], "書く");
+  // TEU：待った第一候选是待つ（促音先试つ）。
+  assert.equal(deinflectJa("待った")[0], "待つ");
+});
+
 test("deinflect: 猜测永不含原形自身", () => {
   for (const t of ["買いました", "高かった", "食べた", "見ない", "話します", "書かれる"]) {
     assert.ok(!deinflectJa(t).includes(t), `${t} 猜测不含自身`);

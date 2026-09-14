@@ -255,6 +255,31 @@ check('key/mode 持久化', s2.apiKey === 'sk-test-persist' && (s2.mode as strin
   check('epub 有注落小字括号', hitHtml.includes('<small') && hitHtml.includes('家') && /（家）/.test(hitHtml), hitHtml);
   const missHtml = renderTokenEpub(tokMiss as never);
   check('epub 缺词只留原文', missHtml === '魑魅' && !missHtml.includes('<small'), missHtml);
+  // 10b2) 诚实门禁（宁缺毋错，锁死）：解不出必须 null，永不注错答案；剩下走 LLM。
+  // 回归：は→feather / ま→just… / 出る思う書く聞く→到 / 開ければ→開く。
+  {
+    const { getGlossWithSource } = await import('../src/dict/dict-loader.js');
+    // 注：魑魅曾是“未知词”探针，但真词典 JMdict 收录了它（mountain demon，
+    // 注对了）——未知词探针改用ザヴァ（双向 miss，deinflect 也够不着）。
+    const missJa = ['は', 'を', 'ま', 'た', 'っ', 'か', 'で', 'ザヴァ'];
+    for (const t of missJa) {
+      for (const target of ['zh', 'en'] as const) {
+        const r = await getGlossWithSource('ja', target, t);
+        check(`诚实 miss ja/${target}/${t}`, r.gloss === null && r.source === null, JSON.stringify(r.gloss)?.slice(0, 60));
+      }
+    }
+    const rEn = await getGlossWithSource('en', 'zh', 'Xyzenigma');
+    check('诚实 miss en未知词', rEn.gloss === null, JSON.stringify(rEn.gloss)?.slice(0, 60));
+    const rDao = await getGlossWithSource('ja', 'zh', '思う');
+    check('诚实 思う->zh 非到（pivot 不串味，缺词走LLM）', rDao.gloss === null || !rDao.gloss.includes('到'), JSON.stringify(rDao.gloss)?.slice(0, 60));
+    // 阳性对照：真命中不受影响（桥还在）。
+    const rHome = await getGlossWithSource('ja', 'zh', '家');
+    check('阳性 家->zh 命中', !!rHome.gloss, JSON.stringify(rHome.gloss)?.slice(0, 40));
+    const rTokyo = await getGlossWithSource('ja', 'zh', '東京');
+    check('阳性 東京->zh pivot 命中', !!rTokyo.gloss, JSON.stringify(rTokyo.gloss)?.slice(0, 40));
+    const rDeru = await getGlossWithSource('ja', 'zh', '出る');
+    check('阳性 出る->zh 命中', !!rDeru.gloss, JSON.stringify(rDeru.gloss)?.slice(0, 40));
+  }
   // 10c) 章节保留 + 标准结构（mimetype/container/opf/ncx/ch）
   const demo = parseTxt2('第一段家。\n\n第二段町。', 'demo.txt', 'ja');
   const packJa = getFallbackPack('ja');
