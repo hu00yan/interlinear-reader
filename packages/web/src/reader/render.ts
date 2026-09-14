@@ -44,6 +44,7 @@ export async function annotateParagraphs(
             t.gloss = d.gloss;
             // 缓存命中记 cache，词典分片/mock 首命中记 dict（B5：此前全部误标 cache）
             t.glossSource = d.source;
+            if (d.glosses.length > 1) t.glosses = d.glosses;
           }
         }
       }

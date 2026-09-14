@@ -66,6 +66,10 @@ check('md 表格转文本', mdText.includes('Time') && mdText.includes('way'), m
 check('md 引用入正文', mdText.includes('quoted'), mdText.slice(0, 120));
 const art = extractArticle('<html><body><article><p>' + 'word '.repeat(30) + '</p><p>short</p></article></body></html>');
 check('url 正文提取过滤短段', art.length === 1, `got ${art.length}`);
+// url 双败指引粘贴（fetch 桩全 404：直连败→代理败→粘贴指引，无真网络）
+const { fetchArticle } = await import('../src/ingest/url.js');
+const urlErr = await fetchArticle('https://example.com/x', 'en').then(() => '', (e: Error) => e.message);
+check('url 双败指引粘贴', /粘贴导入/.test(urlErr), urlErr.slice(0, 60));
 
 // 3. 分词+lemma+逐词注出（target zh）
 const pack = getFallbackPack('en');
@@ -288,6 +292,12 @@ check('key/mode 持久化', s2.apiKey === 'sk-test-persist' && (s2.mode as strin
     check('阳性 東京->zh pivot 命中', !!rTokyo.gloss, JSON.stringify(rTokyo.gloss)?.slice(0, 40));
     const rDeru = await getGlossWithSource('ja', 'zh', '出る');
     check('阳性 出る->zh 命中', !!rDeru.gloss, JSON.stringify(rDeru.gloss)?.slice(0, 40));
+    // 点词详情：多义项全量透出（行间仍首条；a->zh 有 5 条）。
+    const rAll = await getGlossWithSource('en', 'zh', 'a');
+    check('多义项 glosses 全量', rAll.glosses.length >= 4 && rAll.gloss === rAll.glosses[0], `n=${rAll.glosses.length}`);
+    const annA = await annotateParagraphs(pack, 'en', 'zh', ['a book'], () => false);
+    const tokA = annA[0].tokens.find((t) => t.lemma === 'a');
+    check('多义项 Token 携带', !!tokA?.glosses && tokA.glosses.length >= 4 && tokA.gloss === tokA.glosses[0], `n=${tokA?.glosses?.length}`);
   }
   // 10c) 章节保留 + 标准结构（mimetype/container/opf/ncx/ch）
   const demo = parseTxt2('第一段家。\n\n第二段町。', 'demo.txt', 'ja');

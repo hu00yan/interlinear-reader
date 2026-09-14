@@ -396,12 +396,12 @@ function renderLibrary(main: HTMLElement, sync: () => void): void {
     sync();
     try {
       const { fetchArticle } = await import('../ingest/url.js');
-      const book = await fetchArticle(url, langSel.value as SourceLang);
+      const { book, via } = await fetchArticle(url, langSel.value as SourceLang);
       state.book = book;
       state.chapterIdx = 0;
       state.page = 0;
       state.pack = null;
-      state.status = `已载入《${book.title}》`;
+      state.status = `已载入《${book.title}》${via === 'proxy' ? '（经公开代理抓取）' : ''}`;
       state.tab = 'reader';
     } catch (e) {
       state.error = (e as Error).message;
@@ -2211,10 +2211,13 @@ function showSheet(
     }
   });
   const known = isKnown(lang, t.lemma);
+  const glossBlock = t.glosses && t.glosses.length > 1
+    ? `<ol class="kv gloss-all">${t.glosses.map((g) => `<li>${escapeHtml(g)}</li>`).join('')}</ol>`
+    : `<div class="kv">释义：<b>${escapeHtml(t.gloss ?? '（词典缺词）')}</b> <span class="src-tag">${t.glossSource ?? ''}</span></div>`;
   sheet.innerHTML =
     `<h3 lang="${lang === 'auto' ? '' : lang}">${escapeHtml(t.surface)}</h3>` +
     `<div class="kv muted">lemma: ${escapeHtml(t.lemma)}${t.stopword ? ' · 停用词' : ''}${known ? ' · 已认识' : ''}</div>` +
-    `<div class="kv">释义：<b>${escapeHtml(t.gloss ?? '（词典缺词）')}</b> <span class="src-tag">${t.glossSource ?? ''}</span></div>` +
+    glossBlock +
     `<div class="kv muted sheet-sentence">${escapeHtml(sentence.slice(0, 120))}</div>`;
   const row = document.createElement('div');
   row.className = 'row';

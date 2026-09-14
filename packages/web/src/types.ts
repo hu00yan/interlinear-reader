@@ -57,6 +57,8 @@ export interface Token {
   lemma: string;
   isWord: boolean;
   gloss: string | null;
+  /** 全部释义（点词详情展示；行间只显示首条 gloss） */
+  glosses?: string[] | null;
   glossSource: 'dict' | 'llm' | 'cache' | null;
   known: boolean;
   stopword: boolean;

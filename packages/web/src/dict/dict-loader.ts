@@ -333,7 +333,8 @@ async function loadPair(lang: SourceLang, target: TargetLang): Promise<CompactPa
   return p;
 }
 
-async function realLookup(lang: SourceLang, target: TargetLang, lemma: string, surface?: string): Promise<string | null> {
+/** 查词键序（原形优先，候选只增不减）：抽出供单注/全注复用。单字假名返回 null（诚实 miss）。 */
+function lookupKeys(lang: SourceLang, lemma: string, surface?: string): string[] | null {
   // 多试（与 TrackB getGloss 双试+单数回退对齐）：normalize lemma -> 古英语现代形 ->
   // 屈折/派生形（en）-> surface 原形（TrackB 真包过剥 base 形时兜底，如 de Haus->hau，
   // surface Haus 仍命中；lemma 优先，surface 只做最后回退）。
@@ -386,6 +387,12 @@ async function realLookup(lang: SourceLang, target: TargetLang, lemma: string, s
     const sk = normalize(lang, surface);
     if (sk && !keys.includes(sk)) keys.push(sk);
   }
+  return keys;
+}
+
+async function realLookup(lang: SourceLang, target: TargetLang, lemma: string, surface?: string): Promise<string | null> {
+  const keys = lookupKeys(lang, lemma, surface);
+  if (!keys) return null;
   const data = await loadPair(lang, target);
   for (const key of keys) {
     if (!key) continue;
@@ -395,22 +402,49 @@ async function realLookup(lang: SourceLang, target: TargetLang, lemma: string, s
   return null;
 }
 
+/** 全注：同键序，返回该 lemma 全部释义（去重，上限 6；点词详情用，行间仍只显示首条）。 */
+async function realLookupAll(lang: SourceLang, target: TargetLang, lemma: string, surface?: string): Promise<string[]> {
+  const keys = lookupKeys(lang, lemma, surface);
+  if (!keys) return [];
+  const data = await loadPair(lang, target);
+  const out: string[] = [];
+  for (const key of keys) {
+    if (!key) continue;
+    for (const g of data?.get(key) ?? []) {
+      if (g && !out.includes(g) && out.length < 6) out.push(g);
+    }
+    if (out.length > 0) break; // 首个命中的键即定（与单注同一答案，不抢答）
+  }
+  return out;
+}
+
 export type GlossSource = 'cache' | 'dict';
 
-/** 查词并区分来源：本地缓存命中 -> 'cache'，词典分片/mock 命中 -> 'dict'，缺词 -> null（由调用方送 LLM） */
+/** 查词并区分来源：本地缓存命中 -> 'cache'，词典分片/mock 命中 -> 'dict'，缺词 -> null（由调用方送 LLM）。
+ * glosses 为该词全部释义（点词详情展示；行间仍只显示首条 gloss）。 */
 export async function getGlossWithSource(
   lang: SourceLang,
   target: TargetLang,
   lemma: string,
   surface?: string,
-): Promise<{ gloss: string | null; source: GlossSource | null }> {
+): Promise<{ gloss: string | null; source: GlossSource | null; glosses: string[] }> {
   const key = await wordCacheKey(lang, target, lemma);
   const cached = cacheGet(key);
-  if (cached) return { gloss: cached, source: 'cache' };
+  // 缓存命中也补全 glosses（缓存只存首条省空间，全量走内存分片重取；失败则单条）。
+  if (cached) {
+    let all: string[] = [cached];
+    try {
+      const full = await realLookupAll(lang, target, lemma, surface);
+      if (full.length > 0) all = full;
+    } catch { /* keep single */ }
+    return { gloss: cached, source: 'cache', glosses: all };
+  }
 
   let hit: string | null = null;
+  let all: string[] = [];
   try {
     hit = await realLookup(lang, target, lemma, surface);
+    if (hit) all = await realLookupAll(lang, target, lemma, surface);
   } catch {
     hit = null;
   }
@@ -437,7 +471,7 @@ export async function getGlossWithSource(
   }
   if (hit) {
     cacheSet(key, hit);
-    return { gloss: hit, source: 'dict' };
+    return { gloss: hit, source: 'dict', glosses: all.length > 0 ? all : [hit] };
   }
   // 桥接转译（小语种->zh 经英语； shipped 数据，不新增来源口径，仍记 dict）。
   try {
@@ -447,9 +481,9 @@ export async function getGlossWithSource(
   }
   if (hit) {
     cacheSet(key, hit);
-    return { gloss: hit, source: 'dict' };
+    return { gloss: hit, source: 'dict', glosses: [hit] };
   }
-  return { gloss: null, source: null };
+  return { gloss: null, source: null, glosses: [] };
 }
 
 export async function getGloss(lang: SourceLang, target: TargetLang, lemma: string): Promise<string | null> {
@@ -477,8 +511,8 @@ export async function getGlossesWithSource(
   target: TargetLang,
   lemmas: string[],
   surfaces?: Array<string | null>,
-): Promise<Map<string, { gloss: string | null; source: GlossSource | null }>> {
-  const out = new Map<string, { gloss: string | null; source: GlossSource | null }>();
+): Promise<Map<string, { gloss: string | null; source: GlossSource | null; glosses: string[] }>> {
+  const out = new Map<string, { gloss: string | null; source: GlossSource | null; glosses: string[] }>();
   await Promise.all(
     lemmas.map(async (l, i) => {
       out.set(l, await getGlossWithSource(lang, target, l, surfaces?.[i] ?? undefined));
