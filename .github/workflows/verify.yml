@@ -21,4 +21,4 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule'
     steps:
-      - run: node scripts/selfcheck-local.mjs https://interlinear-reader.pages.dev --tries=5
+      - run: node scripts/selfcheck-local.mjs https://ilreader.pages.dev --tries=5

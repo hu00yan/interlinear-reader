@@ -3,7 +3,7 @@
 //   {base}/dict/en/en.dict.00   (first chunk of the split oversize pair;
 //                                proves split-dict + chunk serving on Pages)
 // Usage: node scripts/selfcheck-local.mjs [baseUrl] [--tries=30]
-// CI nightly: base=https://interlinear-reader.pages.dev
+// CI nightly: base=https://ilreader.pages.dev
 const base = (process.argv[2] ?? process.env.ILR_BASE ?? 'http://127.0.0.1:5173').replace(/\/$/, '');
 const tries = Number((process.argv.find((a) => a.startsWith('--tries=')) ?? '--tries=30').split('=')[1]);
 const okBody = (t) => t.includes('\t') && t.includes('家');
