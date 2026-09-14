@@ -55,7 +55,24 @@ export function createStubServer(port = 0) {
           const b = user.lastIndexOf("}");
           if (a >= 0 && b > a) { try { payload = JSON.parse(user.slice(a, b + 1)); } catch { /* web 协议见下 */ } }
         }
+        // 两种 sentences 协议共存：
+        // - provider golden（packages/provider）：sentences:[{id,tokens:[{i,lemma}]}] → 回 glosses:[{i,lemma,gloss}]
+        // - web 批量（glossBatchPage，A/C 模式回填）：sentences:[{id,text,lemmas:[...]}] → 回 {id:{lemma:gloss}}
         if (payload && Array.isArray(payload.sentences) && payload.sentences.length > 0) {
+          if (payload.sentences.some((s) => Array.isArray(s?.lemmas))) {
+            const mapped = {};
+            for (const s of payload.sentences) {
+              if (typeof s?.id !== "string" || !Array.isArray(s.lemmas)) continue;
+              const m = {};
+              for (const l of s.lemmas) m[String(l)] = `MOCK:${String(l).toLowerCase()}`;
+              mapped[s.id] = m;
+            }
+            return json(res, 200, {
+              id: "chatcmpl-harness", object: "chat.completion", model: "mock",
+              choices: [{ index: 0, message: { role: "assistant", content: JSON.stringify(mapped) }, finish_reason: "stop" }],
+              usage,
+            });
+          }
           const sentences = payload.sentences
             .filter((s) => typeof s?.id === "string" && Array.isArray(s?.tokens))
             .map((s) => ({

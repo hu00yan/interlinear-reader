@@ -96,6 +96,36 @@ export interface ParaSlice {
   to: number;
 }
 
+/**
+ * 把 token 的释义状态写进已存在的 `.tok`/`.gloss` 节点（渲染与就地回填共用）。
+ * 根因：LLM 回填后只换了 gloss 文本，旧实现整页 paintColumns() 重建 DOM；
+ * 抽成纯更新函数后 patchGlosses 可只改有变化的节点，翻页/回填不再闪整页。
+ */
+function applyGlossState(w: HTMLElement, gl: HTMLElement, t: Token, show: boolean, lang: SourceLang): void {
+  w.classList.toggle('from-llm', t.glossSource === 'llm');
+  gl.classList.toggle('hidden-gloss', !show);
+  if (!t.gloss) {
+    gl.classList.add('missing');
+    gl.textContent = '—';
+    // 专名豁免标记（Westminster/Confession/Neumann/WeWork）：仍 .missing（B 契约零 LLM 不变），
+    // 另加 .proper + 专名 title，notice 拆分“其中专名 N 个”且总数对上 DOM。
+    if (isProperNounSurface(lang, t.surface)) {
+      w.classList.add('proper');
+      gl.classList.add('proper');
+      gl.title = '专名（首字母大写），词典无收录，原形保留：可点词用 LLM 确认（A 模式需 key）';
+    } else {
+      w.classList.remove('proper');
+      gl.classList.remove('proper');
+      gl.title = '未找到词典释义：点击单词可用 AI 查询';
+    }
+    return;
+  }
+  w.classList.remove('proper');
+  gl.classList.remove('proper', 'missing');
+  gl.textContent = show ? t.gloss : '···';
+  gl.title = t.glossSource === 'llm' ? 'LLM 释义（含缺词回填，专名原样返回）' : '词典释义';
+}
+
 /** 单段渲染（含分片）：分片只影响首尾 padding/边框（与探针全段盒模型对齐），不拆散任何 .tok */
 function renderOnePara(
   doc: Document,
@@ -131,35 +161,18 @@ function renderOnePara(
     const w = doc.createElement('span');
     w.className = 'tok token' + (t.known ? ' known' : '') + (t.stopword ? ' stop' : '');
     w.setAttribute('data-term', t.lemma);
-    if (opts.measure) {
-      w.setAttribute('data-pi', String(pi));
-      w.setAttribute('data-ti', String(ti));
-    }
+    // data-pi/data-ti 常驻（探针定位 + 回填后就地 patch 释义，免整页重画）
+    w.setAttribute('data-pi', String(pi));
+    w.setAttribute('data-ti', String(ti));
     if (t.glossSource === 'llm') w.classList.add('from-llm');
     const surf = doc.createElement('span');
     surf.className = 'surface';
     surf.textContent = t.surface;
     w.appendChild(surf);
-    const show = opts.showGloss && shouldShowGloss(t, opts.filters, rank);
     const gl = doc.createElement('span');
-    gl.className = 'gloss' + (show ? '' : ' hidden-gloss');
-    gl.textContent = show ? (t.gloss ?? '—') : (t.gloss ? '···' : '—');
-    if (!t.gloss) {
-      gl.classList.add('missing');
-      // 专名豁免标记（Westminster/Confession/Neumann/WeWork）：仍 .missing（B 契约零 LLM 不变，
-      // e2e Xyzenigma 口径不变），另加 .proper + 专名 title，notice 拆分“其中专名 N 个”且总数对上 DOM。
-      // 根因：之前 of 有注而 Westminster 无注显示同为“—”无区分，用户视为莫名缺词。
-      const langForProper = opts.lang ?? 'en';
-      if (isProperNounSurface(langForProper, t.surface)) {
-        w.classList.add('proper');
-        gl.classList.add('proper');
-        gl.title = '专名（首字母大写），词典无收录，原形保留：可点词用 LLM 确认（A 模式需 key）';
-      } else {
-        gl.title = '未找到词典释义：点击单词可用 AI 查询';
-      }
-    } else {
-      gl.title = t.glossSource === 'llm' ? 'LLM 释义（含缺词回填，专名原样返回）' : '词典释义';
-    }
+    gl.className = 'gloss';
+    const show = opts.showGloss && shouldShowGloss(t, opts.filters, rank);
+    applyGlossState(w, gl, t, show, opts.lang ?? 'en');
     w.appendChild(gl);
     w.addEventListener('click', (ev) => {
       ev.stopPropagation();
@@ -169,8 +182,12 @@ function renderOnePara(
       opts.onTokenClick(t, para.text, w);
     });
     p.appendChild(w);
-    // CJK 外加空格由原文 segment 保留；segment 切掉空格时这里补一个
-    if (!/[\u3040-\u30ff\u4e00-\u9fff]/.test(t.surface)) p.appendChild(doc.createTextNode(' '));
+    // 原文空白/标点由 pack.segment 的间隔 token（isWord=false）原样带出；只有当下一个
+    // token 仍是词（分词包吞掉了间隔，如宽松实现）时才补一个空格，避免与原文空白重复。
+    const next = para.tokens[ti + 1];
+    if (!/[\u3040-\u30ff\u4e00-\u9fff]/.test(t.surface) && (!next || next.isWord)) {
+      p.appendChild(doc.createTextNode(' '));
+    }
   }
   // AI 按钮只跟段尾走（分片时归属含段尾的那一页；探针与真实渲染同规则，高度一致）。
   // 测量模式下按钮同样打标（data-ai），探针把它并入上一行行高——否则按钮独占一行时
@@ -244,6 +261,35 @@ export function renderSlices(
       container.appendChild(renderOnePara(doc, para, pi, r.from, r.to, opts));
     }
   }
+}
+
+/**
+ * 就地回填释义（增量重绘）：按已渲染 `.tok[data-pi][data-ti]` 找到对应 token，
+ * 只更新有变化的 `.gloss` 文本/类名，不重建 DOM、不丢选中态、不闪整页。
+ * 与 renderSlices 共用同一套 token 下标，故跨页分片（frag）也能各自命中。
+ */
+export function patchGlosses(
+  container: HTMLElement,
+  flow: AnnotatedParagraph[],
+  opts: Pick<RenderOpts, 'showGloss' | 'filters' | 'lang'>,
+): void {
+  const ranks = new Map<number, Map<string, number>>();
+  container.querySelectorAll<HTMLElement>('.tok[data-pi][data-ti]').forEach((w) => {
+    const pi = Number(w.dataset.pi);
+    const ti = Number(w.dataset.ti);
+    const para = flow[pi];
+    const t = para?.tokens[ti];
+    if (!t || !t.isWord) return;
+    const gl = w.querySelector<HTMLElement>('.gloss');
+    if (!gl) return;
+    let rank = ranks.get(pi);
+    if (!rank) {
+      rank = paragraphFreqRank(para.tokens);
+      ranks.set(pi, rank);
+    }
+    const show = opts.showGloss && shouldShowGloss(t, opts.filters, rank);
+    applyGlossState(w, gl, t, show, opts.lang ?? 'en');
+  });
 }
 
 /** 点击显隐：切换整页释义（app 层改 settings.showGloss 后重渲染即可，此为单段折叠辅助） */

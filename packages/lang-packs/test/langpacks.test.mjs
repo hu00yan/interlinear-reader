@@ -4,9 +4,13 @@ import { segment, lemmatize, isStopword, SUPPORTED_LANGS } from "../src/index.mj
 import { isTrustedEnStem } from "../src/en.mjs";
 import * as ja from "../src/ja.mjs";
 
+// segment 契约是「surface[]，含标点，由调用方判断 isWord」：拼接结果必须还原原文，
+// 否则渲染层会静默丢标点（用户口径“一个句号、逗号都不剩”）。
 test("all 7 langs: segment/lemmatize/stopwords smoke", () => {
   assert.deepEqual(SUPPORTED_LANGS, ["en", "de", "fr", "it", "es", "ru", "ja"]);
-  assert.deepEqual(segment("en", "Hello, world!"), ["Hello", "world"]);
+  assert.deepEqual(segment("en", "Hello, world!"), ["Hello", ", ", "world", "!"]);
+  assert.equal(segment("en", "a.b,c;d?e!f").join(""), "a.b,c;d?e!f");
+  assert.equal(segment("en", "He hath made the house.").join(""), "He hath made the house.");
   assert.ok(segment("de", "Grüße aus München").length >= 3);
   assert.ok(segment("fr", "l'amour de l'eau").includes("amour"));
   assert.ok(segment("it", "l'amore dell'acqua").includes("amore"));

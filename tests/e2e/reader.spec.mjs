@@ -5,6 +5,7 @@
 // -> key hygiene (key only to provider domain, never same-origin) ->
 // selfcheck poll -> screenshots.
 import { test, expect } from "@playwright/test";
+import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -51,6 +52,24 @@ test("real app: 7-lang upload, dict, modes, mock-LLM, hygiene", async ({ page, r
     const t = tok(page, surface);
     await expect(t.first()).toBeVisible();
     await expect(t.first().locator(".gloss")).toHaveText(gloss, { timeout: 10000 });
+  }
+
+  // 2b) 标点必须逐字落在页面上（分词包 segment 契约含标点；曾整段丢失句号/逗号）。
+  // 去掉每个词的释义小字后，段落原文应与 fixture 逐字一致（空格归一）。
+  for (const lang of ["en", "de", "ru"]) {
+    await uploadLang(page, lang, FX(`${lang}.txt`));
+    const want = readFileSync(FX(`${lang}.txt`), "utf8").replace(/\s+/g, " ").trim();
+    // 段落可能被行级分页拆成多个 .frag（左列续右列），按 DOM 顺序拼回
+    const got = await page.locator("#main [data-testid^='book-page'] .para").evaluateAll((els) => {
+      let out = "";
+      for (const el of els) {
+        const clone = el.cloneNode(true);
+        clone.querySelectorAll(".gloss, .ai-btn").forEach((g) => g.remove());
+        out += clone.textContent;
+      }
+      return out.replace(/\s+/g, " ").trim();
+    });
+    expect(got, `${lang} punctuation lost`).toBe(want);
   }
 
   // 3) EPUB path: 7 chapters preserved

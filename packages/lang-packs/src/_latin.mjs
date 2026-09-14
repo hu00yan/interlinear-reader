@@ -19,13 +19,17 @@ export function stripSuffixes(word, rules) {
 }
 
 // Unicode word segmentation shared by EN/DE/FR/IT/ES/RU.
-// Keeps internal apostrophes/hyphens (e.g. "l'amour", "mother-in-law")
-// so gloss lookup can decide clitic handling in lemmatize().
-const WORD_RE = /[\p{L}\p{M}]+(?:['’'‑‒–—-][\p{L}\p{M}]+)*/gu;
+// Full-coverage: word runs (keeping internal apostrophes/hyphens — "l'amour",
+// "mother-in-law" — so lemmatize() can decide clitic handling) plus the
+// non-word runs (whitespace, punctuation, digits) between them. The
+// LanguagePack contract is "segment(text)->surface[]，含标点，由调用方判断
+// isWord", and concatenating the result reproduces the input exactly. Word-only
+// output used to silently drop every period and comma from the rendered page.
+const SEG_RE = /[\p{L}\p{M}]+(?:['’'‑‒–—-][\p{L}\p{M}]+)*|[^\p{L}\p{M}]+/gu;
 
 export function segmentLatin(text) {
   if (!text) return [];
-  const out = text.match(WORD_RE);
+  const out = text.match(SEG_RE);
   return out ?? [];
 }
 

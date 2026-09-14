@@ -544,6 +544,31 @@ export interface BookGlossaryResult {
   budgetTokens: number;
 }
 
+/**
+ * 术语表最多提炼多少块。上下文窗口决定块数（真长窗模型整本圣经也就几块），
+ * 但小窗口模型（默认兜底 32768 tokens）会把一本长篇切成几十块：串行几十次
+ * LLM 往返既是用户感知的“太多轮通信”，也是实打实的费用。超额时在整个文本里
+ * **均匀采样**若干块——术语表的用途是统一专名译法，不是穷举，采样足够。
+ */
+export const GLOSSARY_MAX_CHUNKS = 8;
+/** 术语表提炼并发（块之间无依赖；并发 3 把 24 块的墙钟时间压到 1/3）。 */
+const GLOSSARY_CONCURRENCY = 3;
+
+/** 行内剔除，纯函数：按 max 数对 blocks 均匀采样（保序、去重）。 */
+export function sampleChunks<T>(blocks: T[], max: number): T[] {
+  if (blocks.length <= max || max <= 0) return blocks;
+  const out: T[] = [];
+  const seen = new Set<number>();
+  for (let i = 0; i < max; i++) {
+    const at = Math.round((i * (blocks.length - 1)) / (max - 1));
+    if (!seen.has(at)) {
+      seen.add(at);
+      out.push(blocks[at]);
+    }
+  }
+  return out;
+}
+
 /** 全书术语表：把整本书按上下文预算切块（能填满就填满），逐块提炼并合并。
  * 产物供 glossBatchPage({glossary}) 使用，保证同一专名/术语全书译法一致。
  * 失败策略：单块失败跳过（lastErr 记原因），已有块的结果仍返回；
@@ -565,7 +590,7 @@ export async function extractBookGlossary(
   const fetchFn = opts.fetchFn ?? fetch;
   const contextTokens = opts.maxContextTokens ?? (await fetchModelContext(cfg, fetchFn)) ?? DEFAULT_CONTEXT_TOKENS;
   const budgetTokens = Math.max(1024, contextTokens - (opts.reserveTokens ?? GLOSSARY_RESERVE_TOKENS));
-  const chunks = chunkByTokenBudget(paragraphs, budgetTokens);
+  const chunks = sampleChunks(chunkByTokenBudget(paragraphs, budgetTokens), GLOSSARY_MAX_CHUNKS);
   const targetName = target === 'zh' ? '简体中文' : 'simple English';
   const sys =
     `You are a terminology extractor for a ${lang} book being read with interlinear glosses. ` +
@@ -574,40 +599,56 @@ export async function extractBookGlossary(
     `Prefer renderings that stay consistent across the whole book. ` +
     `Return ONLY a JSON object {term: rendering}. No markdown, no commentary.`;
   const glossary: Record<string, string> = {};
+  const perChunk: Array<Record<string, string> | null> = new Array(chunks.length).fill(null);
   let costUSD = 0;
   let lastErr: unknown;
   let done = 0;
-  for (const chunk of chunks) {
-    if (opts.signal?.aborted) break;
+  let next = 0;
+  const runChunk = async (chunk: string[]): Promise<Record<string, string>> => {
     const user = JSON.stringify({ book: chunk.join('\n\n') });
-    try {
-      const resp = await fetchFn(`${cleanBase(cfg.baseUrl)}/chat/completions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cfg.apiKey}` },
-        body: JSON.stringify({
-          model: cfg.model,
-          messages: [
-            { role: 'system', content: sys },
-            { role: 'user', content: user },
-          ],
-          temperature: 0,
-        }),
-        signal: opts.signal,
-      });
-      if (!resp.ok) throw new ProviderError(`LLM ${resp.status}：${(await resp.text()).slice(0, 200)}`, resp.status);
-      const data = (await resp.json()) as ChatResponse;
-      const raw = data.choices?.[0]?.message?.content?.trim() ?? '';
-      // 合并：先到先得（首块看到的译法更可能来自书名/开篇的规范表述）
-      for (const [k, v] of Object.entries(parseGlossJson(raw))) {
-        if (glossary[k] === undefined && k.trim()) glossary[k] = v;
+    const resp = await fetchFn(`${cleanBase(cfg.baseUrl)}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cfg.apiKey}` },
+      body: JSON.stringify({
+        model: cfg.model,
+        messages: [
+          { role: 'system', content: sys },
+          { role: 'user', content: user },
+        ],
+        temperature: 0,
+      }),
+      signal: opts.signal,
+    });
+    if (!resp.ok) throw new ProviderError(`LLM ${resp.status}：${(await resp.text()).slice(0, 200)}`, resp.status);
+    const data = (await resp.json()) as ChatResponse;
+    const raw = data.choices?.[0]?.message?.content?.trim() ?? '';
+    costUSD += estimateCostUSD(sys + user, raw);
+    return parseGlossJson(raw);
+  };
+  const worker = async (): Promise<void> => {
+    for (;;) {
+      if (opts.signal?.aborted) return;
+      const i = next++;
+      if (i >= chunks.length) return;
+      try {
+        perChunk[i] = await runChunk(chunks[i]);
+      } catch (e) {
+        if (opts.signal?.aborted) return;
+        lastErr = e;
       }
-      costUSD += estimateCostUSD(sys + user, raw);
-    } catch (e) {
-      if (opts.signal?.aborted) break;
-      lastErr = e;
+      done += 1;
+      opts.onProgress?.(done, chunks.length);
     }
-    done += 1;
-    opts.onProgress?.(done, chunks.length);
+  };
+  await Promise.all(
+    Array.from({ length: Math.max(1, Math.min(GLOSSARY_CONCURRENCY, chunks.length)) }, () => worker()),
+  );
+  // 合并按块序（不是完成序）：靠前的块更可能来自书名/开篇的规范表述，先到先得。
+  for (const part of perChunk) {
+    if (!part) continue;
+    for (const [k, v] of Object.entries(part)) {
+      if (glossary[k] === undefined && k.trim()) glossary[k] = v;
+    }
   }
   if (Object.keys(glossary).length === 0 && lastErr) throw lastErr;
   return { glossary, chunks: chunks.length, costUSD, contextTokens, budgetTokens };
