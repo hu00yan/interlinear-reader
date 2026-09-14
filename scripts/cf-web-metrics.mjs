@@ -1,5 +1,5 @@
 // CF/本地 阅读页 DOM + 网页指标一次实测。
-// 用法：node scripts/cf-web-metrics.mjs [--base=http://127.0.0.1:5173] [--cf=https://ilr-cache.hacker-news-roo.workers.dev] [--rounds=11]
+// 用法：node scripts/cf-web-metrics.mjs [--base=http://127.0.0.1:5173] [--cf=https://pub-<id>.r2.dev] [--rounds=11]
 // 无 --base 时自起 stub-server（dist + dict，与 verify 同源），即“本地版”口径。
 // 有公网 Pages 域后：--base=https://<pages域> 重跑，本脚本零改动（base 标记 CF/LOCAL 自动切换）。
 // 覆盖（任务口径）：
@@ -20,7 +20,7 @@ const arg = (k, d = null) => {
 };
 const ROUNDS = Number(arg("rounds", "11"));
 let base = arg("base", null);
-const CF = arg("cf", "https://ilr-cache.hacker-news-roo.workers.dev");
+const CF = arg("cf", "https://pub-3d23245bf2874c8cbdf740c1d2761ada.r2.dev");
 let srv = null;
 let baseKind = "LOCAL";
 if (!base) {
@@ -56,26 +56,22 @@ function pct(arr, p) {
   return s[Math.min(s.length - 1, Math.floor((p / 100) * s.length))];
 }
 
-// ---- 0) CF Worker 自测（公网 CF 版唯一已出域的部分；Pages 静态域未出） ----
+// ---- 0) R2 公开桶直读（无 Worker；词典 canonical + 生产兜底） ----
 try {
   const t0 = Date.now();
-  const r = await fetch(`${CF}/api/selfcheck`);
-  const j = await r.json();
-  out.worker = {
-    ok: r.ok, latencyMs: Date.now() - t0,
-    langs: j.langs, modes: j.modes,
-    shardsOk: j.shardsOk, hitRate: j.cache?.hitRate,
-  };
-  check("CF Worker /api/selfcheck 7+7", r.ok && j.langs?.length === 7 && j.shardsOk?.length === 7,
-    `lat=${Date.now() - t0}ms shardsOk=${j.shardsOk?.length} hitRate=${j.cache?.hitRate}`);
+  const r = await fetch(`${CF}/dict/ja/zh.dict.br`, { headers: { Accept: "text/plain" } });
+  const body = r.ok ? await r.text() : "";
+  const ok = r.ok && body.includes("家");
+  out.worker = { ok, latencyMs: Date.now() - t0, pair: "ja/zh", entries: body.split("\n").filter(Boolean).length };
+  check("R2 公开桶 ja/zh 可读", ok, `lat=${Date.now() - t0}ms entries=${out.worker.entries}`);
 } catch (e) {
   out.worker = { ok: false, error: String(e).slice(0, 200) };
-  check("CF Worker /api/selfcheck 7+7", false, String(e).slice(0, 200));
+  check("R2 公开桶 ja/zh 可读", false, String(e).slice(0, 200));
 }
-// Pages 域探测：当前无 pages.dev 域（DEPLOY.md 需 Dashboard 手工连 repo），如将来有则 --base 指向它重跑。
+// Pages 域探测：--base=https://<pages域> 即测生产静态（含分片）；--cf 默认 R2 公开桶。
 out.note = out.pagesDomain
   ? "CF Pages 域实测"
-  : "CF Pages 域未出（仅 Worker 域 live），本轮为本地 dist 实测 + 公网 Worker 自测；Pages 域出后 --base=<pages域> 重跑本脚本";
+  : "本轮为本地 dist 实测 + 公网 R2 公开桶直读；Pages 域出后 --base=<pages域> 重跑本脚本";
 
 // ---- 1) 首屏 JS（产物口径：dist gzip + 无 modulepreload） ----
 try {
@@ -380,7 +376,7 @@ const L = [];
 L.push(`| 项 | 结果 | 备注 |`);
 L.push(`|---|---|---|`);
 L.push(`| 实测基 | ${out.base} [${out.baseKind}] | ${out.note} |`);
-L.push(`| CF Worker | ${out.worker?.ok ? "PASS" : "FAIL"} ${out.worker?.latencyMs ?? "?"}ms | shardsOk=${out.worker?.shardsOk?.length ?? "?"} hitRate=${out.worker?.hitRate ?? "?"} |`);
+L.push(`| R2 公开桶 | ${out.worker?.ok ? "PASS" : "FAIL"} ${out.worker?.latencyMs ?? "?"}ms | ja/zh entries=${out.worker?.entries ?? "?"} |`);
 L.push(`| pager==2 | ${out.dom.gibbon?.pager?.n === 2 ? "PASS" : "FAIL"} | top/body/bottom=${JSON.stringify(out.dom.gibbon?.pager?.order)} 翻页后=${out.pageturn?.pagerStill2 ? 2 : "?"} |`);
 L.push(`| Gibbon注出率 | ${((out.dom.gibbon?.rate ?? 0) * 100).toFixed(1)}% (${out.dom.gibbon?.hit}/${out.dom.gibbon?.total}) | 阈值>90% ${out.dom.gibbon?.rate > 0.9 ? "PASS" : "FAIL"} |`);
 L.push(`| KJV注出率 | ${((out.dom.kjv?.rate ?? 0) * 100).toFixed(1)}% (${out.dom.kjv?.hit}/${out.dom.kjv?.total}) | 阈值>80% ${out.dom.kjv?.rate > 0.8 ? "PASS" : "FAIL"} |`);

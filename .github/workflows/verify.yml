@@ -21,7 +21,4 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22 }
-      - run: node scripts/selfcheck-local.mjs https://ilr-cache.hacker-news-roo.workers.dev --tries=5
+      - run: node scripts/selfcheck-local.mjs https://interlinear-reader.pages.dev --tries=5

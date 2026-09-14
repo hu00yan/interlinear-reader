@@ -1,9 +1,9 @@
 // Local harness server for `npm run verify`: serves the REAL web build
 // (packages/web/dist) + dict shards (public/dict) + fixtures, and stubs:
-//   /api/cache, /api/selfcheck  (same rules as workers/cache.ts)
 //   /mock-llm/chat/completions  (deterministic flat lemma->gloss JSON that the
 //                                real provider parser accepts; records auth)
-// No network, no R2, no wrangler, zero LLM spend.
+// No network, no Worker, zero LLM spend. R2 公开桶只在生产兜底里出现，
+// 本地 harness 不碰（同源整包/分片即全量）。
 import { createServer } from "node:http";
 import { readFile, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -18,10 +18,6 @@ const MIME = {
   ".html": "text/html", ".js": "text/javascript", ".css": "text/css",
   ".json": "application/json", ".dict": "text/plain; charset=utf-8", ".epub": "application/epub+zip", ".txt": "text/plain",
 };
-const KEY_RE = /^([0-9a-f]{40}|[0-9a-f]{64})$/;
-const mem = new Map();
-let hits = 0, misses = 0;
-const hitRate = () => (hits + misses === 0 ? 0 : Math.round((hits / (hits + misses)) * 10000) / 10000);
 
 export const mockLlmRequests = []; // shared with e2e via /mock-llm/__requests
 
@@ -99,49 +95,6 @@ export function createStubServer(port = 0) {
     if (u.pathname === "/mock-llm/__reset" && req.method === "POST") {
       mockLlmRequests.length = 0;
       return json(res, 200, { ok: true });
-    }
-
-    // ---- shared-cache stub (workers/cache.ts rules) ----
-    if (u.pathname === "/api/cache") {
-      const key = u.searchParams.get("key") ?? "";
-      if (!KEY_RE.test(key)) return json(res, 400, { ok: false, error: "key must be hex digest (sha1 40 / sha256 64)" });
-      if (req.headers["x-api-key"] || req.headers.authorization)
-        return json(res, 400, { ok: false, error: "key material must not pass through Workers" });
-      if (req.method === "GET") {
-        if (mem.has(key)) { hits++; return json(res, 200, { hit: true, value: mem.get(key), hitRate: hitRate() }); }
-        misses++;
-        return json(res, 200, { hit: false, hitRate: hitRate() });
-      }
-      if (req.method === "PUT") {
-        let raw = "";
-        for await (const c of req) raw += c;
-        if (raw.length > 8 * 1024) return json(res, 413, { ok: false, error: "body too large (8KB max)" });
-        if (/(sk-[A-Za-z0-9]|api[_-]?key\s*[:=]\s*['"]?[A-Za-z0-9])/i.test(raw))
-          return json(res, 400, { ok: false, error: "key material must not pass through Workers" });
-        let body; try { body = JSON.parse(raw); } catch { return json(res, 400, { ok: false, error: "invalid JSON" }); }
-        if (body.value === undefined) return json(res, 400, { ok: false, error: "missing {value}" });
-        if (mem.size >= 10_000) mem.delete(mem.keys().next().value);
-        mem.set(key, body.value);
-        return json(res, 200, { ok: true, hitRate: hitRate() });
-      }
-      return json(res, 405, { ok: false, error: "method not allowed" });
-    }
-    if (u.pathname === "/api/selfcheck") {
-      const langs = ["en", "de", "fr", "it", "es", "ru", "ja"];
-      const ok = [];
-      for (const l of langs) {
-        try {
-          const files = await readdir(join(dictRoot, l));
-          if (files.some((f) => f.endsWith(".dict"))) ok.push(`dict/${l}/`);
-        } catch { /* missing */ }
-      }
-      return json(res, 200, {
-        version: "0.1.0", langs, targets: ["zh", "en"], modes: ["A", "B", "C"],
-        shardsChecked: langs.map((l) => `dict/${l}/`), shardsOk: ok,
-        coverage: { note: "full per-term coverage runs in verify; see artifacts/verify-report.json" },
-        cache: { hits, misses, hitRate: hitRate(), entries: mem.size },
-        freeTier: { workersReqDay: "100k free", r2GB: "10 free", ttlDays: 30, maxEntries: 10000 },
-      });
     }
 
     // ---- static: web dist first, then dict shards, then fixtures ----

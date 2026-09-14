@@ -12,8 +12,11 @@ Pair payload format: UTF-8 lines of `lemma<TAB>glosses`; multiple glosses are se
 Static hosts serve prebuilt `.br` transparently; always request the `.dict` URL
 (owner: `packages/dict-loader/src/index.mjs`, `fetchPair`).
 
-## Dict lookup (web: `packages/web/src/dict/dict-loader.ts`)
-`getGloss(lang, target, lemma) -> string | null`.
+## Dict reads (web: `packages/web/src/dict/dict-loader.ts`, no server)
+`getGloss(lang, target, lemma) -> string | null`, order per pair:
+`{base}/dict/{lang}/{target}.dict` (whole) → `.dict.00/.01…` (chunks for
+pairs >20MB; Pages 25MB/file limit, cutter: `packages/web/scripts/split-dict.mjs`)
+→ R2 public `{R2}/dict/{lang}/{target}.dict.br` (`VITE_R2_PUBLIC` override).
 Miss → null → caller (Track C) sends to LLM. No en-pivot: zh miss NEVER falls
 back to en (owner: `packages/dict-loader/src/index.mjs` header).
 R2-backed loader returns `{status:"hit"|"miss", gloss:[], shard}`.
@@ -31,7 +34,10 @@ R2-backed loader returns `{status:"hit"|"miss", gloss:[], shard}`.
 ## Cache keys (owner: `packages/web/src/lib/hash.ts` — locked)
 `wordCacheKey = sha1hex("lang|target|lemma|")` (40 hex),
 `sentenceCacheKey = sha1hex("lang|target||sentence")`.
-`workers/cache.ts` `KEY_RE` accepts 40-hex (+64-hex reserved) and NOTHING else.
+Browser cache only (localStorage LRU, `packages/web/src/lib/cache.ts`).
+No server, no Worker: same-origin `/api/*` does not exist; BYOK lives in
+`ilr.settings.v1` and travels ONLY as `Authorization: Bearer` to the
+configured provider `baseUrl` (browser-direct, no proxy, no server).
 
 ## Key hygiene (owners: `packages/web/src/llm/provider.ts`, `packages/provider/*`)
 BYOK lives in `ilr.settings.v1` and travels ONLY as

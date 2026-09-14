@@ -38,7 +38,7 @@ CONTRACT.md 的主张不动；下表只做口径对照，冲突处以“双写/�
 | BYOK | `localStorage["ilr:key"]`（+ 规范 `ilr.settings.v1`.apiKey 双写） | — | 只去 LLM provider 域；同源 `/api/*` 永不带 `apiKey/x-api-key/bearer` |
 | 模式 | `localStorage["ilr:mode"]` = `a\|b\|c`（+ `ilr.settings.v1`.mode 双写，内部枚举 `A/B/C`） | — | `saveSettings` 双写；`loadSettings` 以 CONTRACT 键为准迁移，大小写归一 |
 | 设置全量 | `ilr.settings.v1`（JSON：baseUrl/model/target/mode/费用上限/过滤/分页） | — | 规范存储；`ilr:key/ilr:mode` 是它的 CONTRACT 镜像 |
-| 词释义缓存 | `ilr.gloss-cache.v1`（key = 上述 sha1 词键，localStorage LRU 2000 条） | `/api/cache?key=<sha256hex>`（`sha256(lang\|term\|context)`，TTL 30d，>8KB 413） | 两套键**不互通**：本地 sha1 只读本地，服务端 sha256 只走 `/api/*`；服务端 key 永不含 apiKey 材料 |
+| 词释义缓存 | `ilr.gloss-cache.v1`（key = 上述 sha1 词键，localStorage LRU 2000 条） | —（无服务端：Worker 已下线，2026-09-14） | 本地 sha1 只读本地；key 永不含 apiKey 材料 |
 | 句缓存（内存） | 会话 Map（key = 句级 sha1） | 同上 | 刷新即失，不持久化 |
 | 已认识/生词本 | `ilr.known.v1` / `ilr.vocab.v1`（+ IndexedDB `ilr/vocab` 镜像） | — | 刷新不丢；清空逻辑按 `ilr.` 前缀删，已覆盖 CONTRACT 键 |
 

@@ -128,11 +128,15 @@ const npmBin = process.platform === "win32" ? "npm.cmd" : "npm";
     const tail = r2.out.split("\n").filter((l) => /passed|failed|flaky/i.test(l)).join(" | ").slice(-200);
     step("e2e (7-lang/dict/modes/mock-LLM/hygiene/shots)", r2.code === 0, tail || r2.out.slice(-300), r2.loc);
     try {
-      const sc = await fetch(`${process.env.ILR_BASE}/api/selfcheck`).then((x) => x.json());
-      const ok = Array.isArray(sc.langs) && sc.langs.length === 7 && sc.modes.length === 3 && sc.shardsOk.length === 7;
-      step("selfcheck (CI poll)", ok, `langs=${sc.langs?.length} shardsOk=${sc.shardsOk?.length} hitRate=${sc.cache?.hitRate}`, "workers/cache.ts:1");
-      writeFileSync(join(root, "artifacts/selfcheck.json"), JSON.stringify(sc, null, 2));
-    } catch (e) { step("selfcheck (CI poll)", false, String(e), "workers/cache.ts:1"); }
+      // 无 Worker：健康 = 同源静态词典可取（小包整包 + 超限分片首片）。
+      const [zh, chunk] = await Promise.all([
+        fetch(`${process.env.ILR_BASE}/dict/ja/zh.dict`).then((x) => x.text()),
+        fetch(`${process.env.ILR_BASE}/dict/en/en.dict.00`).then((x) => x.text()),
+      ]);
+      const ok = zh.includes('家') && chunk.length > 1_000_000;
+      step("selfcheck (static dict)", ok, `ja/zh=${zh.split('\n').filter(Boolean).length}entries en-chunk=${(chunk.length / 1048576).toFixed(1)}MB`, "scripts/selfcheck-local.mjs:1");
+      writeFileSync(join(root, "artifacts/selfcheck.json"), JSON.stringify({ ok, jaZhEntries: zh.split('\n').filter(Boolean).length }, null, 2));
+    } catch (e) { step("selfcheck (static dict)", false, String(e), "scripts/selfcheck-local.mjs:1"); }
   } finally {
     await new Promise((res) => srv.close(res));
   }

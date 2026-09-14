@@ -107,13 +107,13 @@ test("real app: 7-lang upload, dict, modes, mock-LLM, hygiene", async ({ page, r
   await page.getByRole("button", { name: /设置/ }).click();
   await expect(page.locator(".card input[type='password']")).toHaveValue("sk-test-e2e-key");
 
-  // 8) selfcheck pollable (CI gate)
-  const sc = await request.get("/api/selfcheck");
-  expect(sc.ok()).toBeTruthy();
-  const body = await sc.json();
-  expect(body.langs).toEqual(LANGS);
-  expect(body.modes).toEqual(["A", "B", "C"]);
-  expect(body.shardsOk.length).toBe(7);
+  // 8) deploy health (no Worker): static dict serves whole pair + first chunk
+  const zhDict = await request.get("/dict/ja/zh.dict");
+  expect(zhDict.ok()).toBeTruthy();
+  expect(await zhDict.text()).toContain("家");
+  const enChunk = await request.get("/dict/en/en.dict.00");
+  expect(enChunk.ok()).toBeTruthy();
+  expect((await enChunk.text()).length).toBeGreaterThan(1_000_000);
 
   // 9) screenshots
   await readerNav(page).click();

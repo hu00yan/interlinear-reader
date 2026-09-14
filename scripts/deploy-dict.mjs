@@ -1,6 +1,7 @@
 // R2 dict uploader — Track B scope only (B1 按 track 分流).
-// Uploads Track B's PREBUILT .br shards — Track D never rebuilds dict
-// content (out of scope), only ships it.
+// Uploads Track B's PREBUILT .br shards — R2 is the canonical store AND the
+// public read origin (r2.dev, no Worker): web loader falls back to it when
+// same-origin whole/chunks are missing (see dict-loader.ts loadPair).
 //   npm run deploy:dict        -> DRY-RUN: object table + totals, no network
 //   npm run deploy:dict:live   -> `wrangler r2 object put` each .br object
 // Layout: dict/{lang}/{target}.dict.br (one object per language pair).

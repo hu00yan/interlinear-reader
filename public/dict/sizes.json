@@ -21,22 +21,22 @@
   },
   "ja": {
     "lang": "ja",
-    "entries": 465540,
+    "entries": 465541,
     "shards": 2,
     "pairStats": {
       "zh": {
-        "entries": 79,
-        "dictBytes": 1008,
-        "brBytes": 519
+        "entries": 91,
+        "dictBytes": 1143,
+        "brBytes": 590
       },
       "en": {
-        "entries": 465540,
-        "dictBytes": 26149703,
-        "brBytes": 6668241
+        "entries": 465541,
+        "dictBytes": 26149723,
+        "brBytes": 6668337
       }
     },
-    "jsonBytes": 26150711,
-    "brBytes": 6668760,
+    "jsonBytes": 26150866,
+    "brBytes": 6668927,
     "gzBytes": 0
   },
   "de": {

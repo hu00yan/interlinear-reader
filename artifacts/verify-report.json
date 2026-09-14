@@ -1,8 +1,8 @@
 {
   "version": "0.1.0",
-  "date": "2026-09-13T08:29:53.945Z",
+  "date": "2026-09-14T03:25:10.262Z",
   "ok": true,
-  "durationMs": 12829,
+  "durationMs": 13943,
   "contract": {
     "langs": [
       "en",
@@ -35,13 +35,13 @@
     {
       "name": "unit track-d (worker rules + key compat)",
       "ok": true,
-      "detail": "\n  ✔ langs/modes match locked contract (7x2 + A/B/C) (0.085125ms)\n✔ worker rules mirror (2.042459ms)\nℹ tests 8\nℹ suites 2\nℹ pass 8\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 63.500416\n\n",
+      "detail": "s carry no secret material (0.094209ms)\n✔ cache-key compat (web sha1 <-> worker KEY_RE) (1.603625ms)\nℹ tests 3\nℹ suites 1\nℹ pass 3\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 77.188458\n\n",
       "at": "tests/unit/worker-rules.test.mjs:1"
     },
     {
       "name": "web build (tsc+vite+300KB)",
       "ok": true,
-      "detail": "首屏合计 gzip=13.0KB（上限 60KB；懒加载块不计但不得被 modulepreload） | PASS",
+      "detail": "首屏合计 gzip=23.6KB（上限 60KB；懒加载块不计但不得被 modulepreload） | PASS",
       "at": "packages/web/src/main.ts:1"
     },
     {
@@ -53,19 +53,19 @@
     {
       "name": "provider tests (track C)",
       "ok": true,
-      "detail": "a1 matches node:crypto vectors (1.137291ms)\n✔ sha1 output is 40 lowercase hex chars (0.175666ms)\nℹ tests 59\nℹ suites 0\nℹ pass 59\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 1881.835708\n\n",
+      "detail": "a1 matches node:crypto vectors (1.177958ms)\n✔ sha1 output is 40 lowercase hex chars (0.172333ms)\nℹ tests 59\nℹ suites 0\nℹ pass 59\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 1977.137959\n\n",
       "at": "packages/provider/test/security.test.ts:1"
     },
     {
       "name": "quality golden (7-lang local score + mock)",
       "ok": true,
-      "detail": "ins (0.236584ms)\n✔ setup mock (5.811083ms)\n✔ integration: glossBatch(mock) scores 不合格 (28.606042ms)\nℹ tests 7\nℹ suites 0\nℹ pass 7\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 153.812333\n\n",
+      "detail": "ins (0.232583ms)\n✔ setup mock (5.656583ms)\n✔ integration: glossBatch(mock) scores 不合格 (34.410375ms)\nℹ tests 7\nℹ suites 0\nℹ pass 7\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 188.738916\n\n",
       "at": "packages/provider/golden/score.ts:1"
     },
     {
       "name": "dict-loader tests (track B)",
       "ok": true,
-      "detail": "ment→lemmatize→getGloss on real corpus sentences (no throw, misses recorded not thrown) (7.598417ms)\nℹ tests 8\nℹ suites 0\nℹ pass 8\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 82.519333\n\n",
+      "detail": "ent→lemmatize→getGloss on real corpus sentences (no throw, misses recorded not thrown) (12.211833ms)\nℹ tests 8\nℹ suites 0\nℹ pass 8\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 86.830041\n\n",
       "at": "packages/dict-loader/test/loader.test.mjs:1"
     },
     {
@@ -83,26 +83,26 @@
     {
       "name": "deploy:dict dry-run (R2 table)",
       "ok": true,
-      "detail": "DRY-RUN (no network): 14 objects, 7 langs, total br=17320808 B (R2 free: 10 GB)",
+      "detail": "DRY-RUN (no network): 14 objects, 7 langs, total br=17320975 B (R2 free: 10 GB)",
       "at": "scripts/deploy-dict.mjs:1"
     },
     {
       "name": "dict-proof (real loader 7x2 zh/en + miss)",
       "ok": true,
-      "detail": "philous zh=\"\\\"喜爱\\\"\\\"\" en=\"suf. [用于构成名词, 意义相当于-able]表示“能力”, “可能性”, “倾向性”, “适宜性”\" miss=miss\nPASS dict de: lemma=alt zh=\"老\" en=\"A\" miss=miss\nPASS dict fr: lemma=a zh=\"在\" en=\"-able\" miss=miss\nPASS dict it: lemma=acqua zh=\"水\" en=\"-morph\" miss=miss\nPASS dict es: lemma=a zh=\"在\" en=\"how are you?\" miss=miss\nPASS dict ru: lemma=большои zh=\"大\" en=\"FPV drone\" miss=miss\nPASS dict ja: lemma=あたらしい zh=\"新\" en=\"tilde symbol\" miss=miss\nPASS dict ja ja->en 常用词: 家->en hit \"house\" (scripts/dict-proof.mjs)\nPASS dict ja ja->zh 种子词: 家->zh hit \"家\" (scripts/dict-proof.mjs)\nPASS dict ja ja->en 常用词: 世界->en hit \"world\" (scripts/dict-proof.mjs)\nPASS dict ja ja->en JMdict_e: 行動->en hit \"action\" (scripts/dict-proof.mjs)\nPASS dict ja ja->zh 缺词走LLM(不编造/不回退en): 行動->zh miss null (scripts/dict-proof.mjs)\nPASS dict ja ja->zh 缺词走LLM: 投票->zh miss null (scripts/dict-proof.mjs)\nPASS dict ja miss进LLM队列: ja:zh:行動已记录 (packages/dict-loader/src/index.mjs:60)\nDICT-PROOF OK: 7 langs x zh/en hit + miss (via http://127.0.0.1:55721/dict)",
+      "detail": "philous zh=\"\\\"喜爱\\\"\\\"\" en=\"suf. [用于构成名词, 意义相当于-able]表示“能力”, “可能性”, “倾向性”, “适宜性”\" miss=miss\nPASS dict de: lemma=alt zh=\"老\" en=\"A\" miss=miss\nPASS dict fr: lemma=a zh=\"在\" en=\"-able\" miss=miss\nPASS dict it: lemma=acqua zh=\"水\" en=\"-morph\" miss=miss\nPASS dict es: lemma=a zh=\"在\" en=\"how are you?\" miss=miss\nPASS dict ru: lemma=большои zh=\"大\" en=\"FPV drone\" miss=miss\nPASS dict ja: lemma=あたらしい zh=\"新\" en=\"tilde symbol\" miss=miss\nPASS dict ja ja->en 常用词: 家->en hit \"house\" (scripts/dict-proof.mjs)\nPASS dict ja ja->zh 种子词: 家->zh hit \"家\" (scripts/dict-proof.mjs)\nPASS dict ja ja->en 常用词: 世界->en hit \"world\" (scripts/dict-proof.mjs)\nPASS dict ja ja->en JMdict_e: 行動->en hit \"action\" (scripts/dict-proof.mjs)\nPASS dict ja ja->zh 缺词走LLM(不编造/不回退en): 行動->zh miss null (scripts/dict-proof.mjs)\nPASS dict ja ja->zh 缺词走LLM: 投票->zh miss null (scripts/dict-proof.mjs)\nPASS dict ja miss进LLM队列: ja:zh:行動已记录 (packages/dict-loader/src/index.mjs:60)\nDICT-PROOF OK: 7 langs x zh/en hit + miss (via http://127.0.0.1:63574/dict)",
       "at": "packages/dict-loader/src/index.mjs:60"
     },
     {
       "name": "e2e (7-lang/dict/modes/mock-LLM/hygiene/shots)",
       "ok": true,
-      "detail": "  2 passed (4.0s) | npm warn allow-scripts .npmrc allow-scripts setting is being ignored because --allow-scripts was passed on the command line",
+      "detail": "  2 passed (3.0s) | npm warn allow-scripts .npmrc allow-scripts setting is being ignored because --allow-scripts was passed on the command line",
       "at": "tests/e2e/quality.spec.mjs:6"
     },
     {
-      "name": "selfcheck (CI poll)",
+      "name": "selfcheck (static dict)",
       "ok": true,
-      "detail": "langs=7 shardsOk=7 hitRate=0",
-      "at": "workers/cache.ts:1"
+      "detail": "ja/zh=91entries en-chunk=11.2MB",
+      "at": "scripts/selfcheck-local.mjs:1"
     }
   ],
   "artifacts": [

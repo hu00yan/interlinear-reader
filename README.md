@@ -1,8 +1,8 @@
 # interlinear-reader · Track D (deploy + unattended harness)
 
-Cloudflare Pages (`packages/web/dist`) + R2 (`dict/{lang}/{target}.dict.br`) +
-Workers shared LLM-gloss cache (`workers/cache.ts`). Free tier only, no DB.
-BYOK keys never touch Workers (browser-direct to provider).
+Cloudflare Pages (`packages/web/dist`) + R2 public origin
+(`dict/{lang}/{target}.dict.br`, r2.dev direct, no Worker). Free tier only, no DB.
+BYOK keys never leave the browser (browser-direct to provider).
 
 - Contract mirror: `CONTRACT.md` (7×2 langs, one asset per source/target pair, A/B/C, sha1 keys, hygiene)
 - Deploy/runbook: `DEPLOY.md`

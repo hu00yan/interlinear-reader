@@ -18,7 +18,17 @@ test("deinflect: ます/た/ない/形容词还原到辞書形", () => {
 test("deinflect: 原形不产猜测（调用方原形优先，防抢答）", () => {
   assert.deepEqual(deinflectJa("見る"), [], "見る是原形");
   assert.deepEqual(deinflectJa("食べる"), [], "食べる是原形");
-  assert.deepEqual(deinflectJa("家"), [], "单字无猜测");
+  assert.deepEqual(deinflectJa("高い"), [], "高い是原形");
+});
+
+test("deinflect: 連用形裸语干兜底（链式无产出才猜，精确优先）", () => {
+  assert.ok(deinflectJa("思").includes("思う"), "思→思う");
+  assert.ok(deinflectJa("出").includes("出る"), "出→出る");
+  assert.ok(deinflectJa("高").includes("高い"), "高→高い");
+  assert.ok(deinflectJa("書き").includes("書く"), "書き→書く");
+  assert.ok(deinflectJa("来").includes("来る"), "来→来る");
+  assert.ok(deinflectJa("いた").includes("いる"), "いた→いる");
+  assert.ok(!deinflectJa("家").includes("家"), "家猜测不含自身");
 });
 
 test("deinflect: 猜测永不含原形自身", () => {

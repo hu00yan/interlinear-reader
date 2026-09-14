@@ -198,7 +198,12 @@ function germanCandidates(lemma: string): string[] {
 
 /** 桥接英译文的可用形态：去括号注，>4 词的例句式变体直接丢弃（首词回退会撞出错误释义，
  * 如 "She dropped the parcel…" 首词 she）；单字母形一律丢弃（"D"->data 这类短路比缺词更坏）。
+ * 介词/冠词首词同样丢弃：ja "to think" 首词 to 会撞出 en->zh 的 "to->到"，
+ * 出る/思う/書く/聞く全注成“到”（pivot 串味比缺词更坏，宁缺毋错）。
  * 返回 [精确形, 首词]（相同则只留精确形）。 */
+const PIVOT_HEAD_STOP = new Set(
+  ['to', 'of', 'in', 'on', 'at', 'by', 'for', 'with', 'from', 'into', 'as', 'a', 'an', 'the', 'and', 'or'],
+);
 function pivotEnForms(variant: string): string[] {
   const clean = variant
     .replace(/\([^)]*\)/g, ' ')
@@ -210,6 +215,7 @@ function pivotEnForms(variant: string): string[] {
   const head = toks[0] as string;
   if (head.length < 2) return [];
   if (head === clean) return [clean];
+  if (PIVOT_HEAD_STOP.has(head)) return [clean];
   return [clean, head];
 }
 
@@ -254,6 +260,36 @@ async function pivotLookup(
   return null;
 }
 
+async function fetchDictText(url: string, sameOrigin: boolean): Promise<string | null> {
+  try {
+    const res = await fetch(url, { headers: { Accept: 'text/plain' } });
+    if (!res.ok) return null;
+    const text = await res.text();
+    // 同源缺文件时 SPA 回退吐 index.html（200 text/html）—— 当缺失处理，走分片/R2。
+    if (sameOrigin && (/text\/html/i.test(res.headers?.get?.('content-type') ?? '') || /^\s*<!doctype html/i.test(text))) return null;
+    return text;
+  } catch {
+    return null;
+  }
+}
+
+function parseDictText(text: string): CompactPair {
+  const map = new Map<string, string[]>();
+  for (const line of text.split('\n')) {
+    if (!line) continue;
+    const tab = line.indexOf('\t');
+    if (tab < 0) continue;
+    const lemma = line.slice(0, tab);
+    const gloss = line.slice(tab + 1);
+    if (lemma) map.set(lemma, gloss ? gloss.split('\x1f') : []);
+  }
+  return map;
+}
+
+// R2 公开源（canonical 全量整包；同源缺失时的最后兜底；无 Worker，直读 r2.dev）。
+const R2_PUBLIC = (import.meta.env?.VITE_R2_PUBLIC as string | undefined)
+  ?? 'https://pub-3d23245bf2874c8cbdf740c1d2761ada.r2.dev';
+
 async function loadPair(lang: SourceLang, target: TargetLang): Promise<CompactPair | null> {
   const key = `${lang}/${target}`;
   if (shardMem.has(key)) return shardMem.get(key) ?? null;
@@ -263,22 +299,22 @@ async function loadPair(lang: SourceLang, target: TargetLang): Promise<CompactPa
   const ongoing = shardInflight.get(key);
   if (ongoing) return ongoing;
   const p = (async (): Promise<CompactPair | null> => {
-    try {
-      const base = (import.meta.env?.BASE_URL ?? '/').replace(/\/$/, '');
-      const res = await fetch(`${base}/dict/${lang}/${target}.dict`, { headers: { Accept: 'text/plain' } });
-      if (!res.ok) return null;
-      const text = await res.text();
-      if (/text\/html/i.test(res.headers?.get?.('content-type') ?? '') || /^\s*<!doctype html/i.test(text)) return null;
-      const map = new Map<string, string[]>();
-      for (const line of text.split('\n')) {
-        if (!line) continue;
-        const [lemma, gloss = ''] = line.split('\t');
-        if (lemma) map.set(lemma, gloss ? gloss.split('\x1f') : []);
-      }
-      return map;
-    } catch {
-      return null;
+    const base = (import.meta.env?.BASE_URL ?? '/').replace(/\/$/, '');
+    // 1) 同源整包（常规小包；copy-dict 进 dist，Pages 同源直取）。
+    const whole = await fetchDictText(`${base}/dict/${lang}/${target}.dict`, true);
+    if (whole !== null) return parseDictText(whole);
+    // 2) 同源分片（超 20MB 整包被 split-dict 切掉，Pages 只发 .00/.01…）。
+    const merged = new Map<string, string[]>();
+    for (let n = 0; n < 16; n++) {
+      const part = await fetchDictText(`${base}/dict/${lang}/${target}.dict.${String(n).padStart(2, '0')}`, true);
+      if (part === null) break;
+      for (const [lemma, gloss] of parseDictText(part)) merged.set(lemma, gloss);
     }
+    if (merged.size > 0) return merged;
+    // 3) R2 公开整包（canonical；跨源，需桶 CORS 放行 pages 域）。
+    const r2 = await fetchDictText(`${R2_PUBLIC}/dict/${lang}/${target}.dict.br`, false);
+    if (r2 !== null) return parseDictText(r2);
+    return null;
   })().then(
     (map) => {
       shardMem.set(key, map);

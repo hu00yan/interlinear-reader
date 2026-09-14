@@ -2,8 +2,8 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 
-// Compat pin: web's cache keys (packages/web/src/lib/hash.ts, locked) must be
-// accepted by workers/cache.ts KEY_RE. Formula: sha1(`${lang}|${target}|${lemma}|`).
+// Compat pin: web's cache keys (packages/web/src/lib/hash.ts, locked) are
+// 40-hex sha1 digests (opaque, never key material). Formula: sha1(`${lang}|${target}|${lemma}|`).
 function wordCacheKey(lang, target, lemma) {
   const norm = lemma.normalize("NFKC").trim().replace(/\s+/g, " ");
   const lower = lang === "ja" ? norm : norm.toLowerCase();

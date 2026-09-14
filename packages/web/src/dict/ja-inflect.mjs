@@ -106,8 +106,10 @@ function applyMode(remainder, mode) {
       if (!remainder) return [];
       const last = remainder[remainder.length - 1];
       const mapped = TE_MAP[last];
-      if (mapped) return mapped.map((m) => remainder.slice(0, -1) + m);
-      return [remainder + "る"];
+      const teOut = mapped ? mapped.map((m) => remainder.slice(0, -1) + m) : [remainder + "る"];
+      // 单字语干（いた→い）：て形映射之外再试 +る（いる/きる/しる…），词典命中决定。
+      if (remainder.length === 1 && /[぀-ヿｦ-ﾟ]/.test(remainder) && !teOut.includes(remainder + "る")) teOut.push(remainder + "る");
+      return teOut;
     }
     case "EU": {
       if (!remainder) return [];
@@ -176,11 +178,30 @@ const KURU_TAILS = [
 
 export function deinflectJa(token) {
   const t = String(token ?? "").trim();
-  if (!t || t.length < 2) return [];
+  if (!t) return [];
   const out = [];
   const push = (c) => {
     if (c && c !== t && !out.includes(c)) out.push(c);
   };
+  // 連用形（ます语干裸形）：Segmenter 常把活用切碎（思った→思|っ|た），
+  // 残下的语干本身无后缀可剥。整词按ます语干映射 + う/い补齐，词典命中决定：
+  // 思→思う、高→高い、書き→書く、来→来る、待っ→待つ（っ→つ）。
+  // 名词（事/本）产出的候选在词典里不存在，自然落选。
+  const renyoukei = (stem) => {
+    if (!stem) return;
+    if (stem.endsWith("っ") && stem.length >= 1) push(stem.slice(0, -1) + "つ");
+    for (const c of applyMode(stem, "MASUU")) push(c);
+    // 五段未然以外的行：漢字語干补全行尾（聞→聞く、話→話す、立→立つ…），
+    // う/い/しい前置（思う/高い/嬉しい常见），词典命中决定一切。
+    push(stem + "う");
+    push(stem + "い");
+    push(stem + "しい");
+    const last = stem[stem.length - 1];
+    if (/[一-鿿㐀-䶿]/.test(last)) {
+      for (const e of ["く", "ぐ", "す", "つ", "ぬ", "ぶ", "む"]) push(stem + e);
+    }
+  };
+  if (t.length < 2) { renyoukei(t); return out.slice(0, 14); }
   // ます系する复合：Xします -> Xする/Xす/X（話します→話す先中，勉強します→勉強兜底；
   // 恰等于后缀时（しました/します…）stem 为空，直接产 する）。
   for (const tail of SURU_TAILS) {
@@ -212,6 +233,9 @@ export function deinflectJa(token) {
       for (const c of applyMode(remainder, mode)) push(c);
     }
   }
+  // 链式无产出（裸语干/单字）才走連用形兜底，保证精确候选永远在前、不被截断。
+  // 已像辞書形（う段/る/い结尾：見る/書く/高い）的不猜——原形优先已查过。
+  if (!out.length && !/[うくぐすつぬぶむるい]$/.test(t)) renyoukei(t);
   return out.slice(0, 14);
 }
 
