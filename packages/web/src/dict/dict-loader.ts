@@ -7,6 +7,7 @@ import type { SourceLang, TargetLang } from '../types.js';
 import { wordCacheKey } from '../lib/hash.js';
 import { cacheGet, cacheSet } from '../lib/cache.js';
 import { mockLookup } from './mock-dict.js';
+import { deinflectJa, isJaKanaFragment } from './ja-inflect.mjs';
 type CompactPair = Map<string, string[]>;
 const shardMem = new Map<string, CompactPair | null>();
 /** 在途 loadPair 去重表（见 loadPair 注释；完成即删，不缓存失败语义之外的任何东西） */
@@ -313,6 +314,24 @@ async function realLookup(lang: SourceLang, target: TargetLang, lemma: string, s
     for (const c of germanCandidates(lemma)) {
       if (c && !keys.includes(c)) keys.push(c);
     }
+  }
+  // 日语活用展开（deinflectJa，原形优先）：買いました→買う、高かった→高い。
+  // 根因：Intl.Segmenter 对活用形按词切分（買いました/高かった不断），lemmatize 又是
+  // 恒等映射，活用形原样进词典必 miss，真日文整段全“—”。候选只增不减，猜错形在词典
+  // 里不存在自然落选（ja-inflect.mjs，owner: packages/lang-packs/src/ja.mjs）。
+  // 单字假名（は/を/ま/た/っ…）直接判 miss：多为助词碎片，直查只会串味（は→feather），
+  // 比缺词更坏；单字汉字（家/本）不受影响。
+  if (lang === 'ja') {
+    // 日语 token 经恒等 lemmatize，lemma 即 surface：单字假名直接 miss。
+    if (isJaKanaFragment(surface ?? lemma)) return null;
+    const tryDeinflect = (form: string): void => {
+      for (const c of deinflectJa(form).slice(0, 8)) {
+        const nk = normalize(lang, c);
+        if (nk && !keys.includes(nk)) keys.push(nk);
+      }
+    };
+    tryDeinflect(lemma);
+    if (surface && surface !== lemma) tryDeinflect(surface);
   }
   // Common English pack lemmatizers intentionally strip suffixes; restore
   // conservative dictionary candidates before declaring a miss.

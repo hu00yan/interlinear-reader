@@ -1,185 +1,8 @@
-// Japanese pack: segment / lemmatize / stopwords.
-//
-// Backend strategy (static-first, wasm on demand):
-// - "builtin" (default, 0 bytes): script-aware chunker — kanji/katakana runs,
-//   hiragana particle splitting, longest-match against an optional compact
-//   lexicon supplied by the caller (dict shards double as lexicon).
-// - "lindera-wasm" (RECOMMENDED professional tokenizer): Lindera + IPADIC,
-//   loaded lazily via dynamic import only when requested. See WASM_NOTES below.
-// - "kuromoji": legacy option, larger + slower; supported via dynamic import.
-//
-// Contract is identical for all backends: segment(text)->tokens[],
-// lemmatize(token)->lemma (builtin = identity; wasm backends return dictionary
-// form via their own morphology), isStopword via particle/aux list.
-//
-// WASM_NOTES —实测 (npm registry, 2026-09-12;复现:见 DICT_SOURCES.md §JA):
-//   lindera-wasm@6.0.0: tarball 708kB / unpacked 1.8MB
-//     (lindera_wasm_bg.wasm 1.7MB + JS glue ~75kB, 共8文件).
-//     词典(IPADIC)不随包发布,运行时从 GitHub Releases
-//     (lindera/lindera, 如 lindera-ipadic-3.0.0.zip)下载一次后进 OPFS/IndexedDB.
-//     API:v6 用 TokenizerBuilder + loadDictionaryFromBytes,见下方 loadLindera.
-//   kuromoji@0.1.2: unpacked 41.3MB / 63文件(含预置词典,纯JS,无wasm).
-//     Pros:无wasm打包烦恼;Cons:体积大一个数量级,加载慢(~1-2s),词典年久失修.
-//   DECISION:默认 builtin(零字节,满足 5-10MB/语言预算),JA 页面首次打开时
-//   懒加载 lindera-wasm + 缓存版 IPADIC.总预算:builtin包 ~6KB
-//   + dict分片(br,见 SIZES) + 可选 lindera运行时 ~1.8MB + IPADIC缓存.
-
-export const lang = "ja";
-
-let backend = "builtin";
-let wasmTokenizer = null; // { tokenize(text): string[] , lemmatize?(tok): string }
-let lexicon = null; // Set<string> optional longest-match lexicon
-
-export function getBackend() {
-  return backend;
-}
-
-export function setLexicon(words) {
-  lexicon = words ? new Set(words) : null;
-}
-
-// Track C / web can inject a loaded wasm tokenizer without this package
-// taking a hard dependency (keeps base bundle at ~35KB).
-export function setWasmTokenizer(tok, name = "lindera-wasm") {
-  wasmTokenizer = tok ?? null;
-  backend = tok ? name : "builtin";
-}
-
-export async function loadLindera({ importer, dictFiles, mode = "normal" } = {}) {
-  // Lazy: `await loadLindera({ dictFiles })` pulls lindera-wasm only on JA pages.
-  // Caller must `npm i lindera-wasm` in the web app; lang-packs stays dep-free.
-  // dictFiles: IPADIC bytes cached by the app (OPFS/IndexedDB/R2), either an
-  //   array of 9 Uint8Arrays in loadDictionaryFromBytes order
-  //   [metadata, dictTrie, dictValsIdx, dictVals, dictWordsIdx, dictWords,
-  //    matrixMtx, charDef, unk]
-  //   or the { metadata, dictTrie, … } object from lindera-wasm/opfs helpers.
-  // Matches lindera-wasm v6 API (default __wbg_init + TokenizerBuilder).
-  if (!dictFiles) {
-    throw new Error(
-      "lindera: dictFiles required — download a lindera-ipadic zip once " +
-      "(see DICT_SOURCES.md §JA), cache the bytes, and pass them here."
-    );
-  }
-  const imp = importer ?? ((s) => import(s));
-  const mod = await imp("lindera-wasm");
-  await mod.default?.();
-  const { TokenizerBuilder, loadDictionaryFromBytes } = mod;
-  if (!TokenizerBuilder || !loadDictionaryFromBytes) {
-    throw new Error("lindera-wasm: expected TokenizerBuilder/loadDictionaryFromBytes exports (v6 API)");
-  }
-  const f = dictFiles;
-  const args = Array.isArray(f) ? f : [
-    f.metadata, f.dictTrie, f.dictValsIdx, f.dictVals,
-    f.dictWordsIdx, f.dictWords, f.matrixMtx, f.charDef, f.unk,
-  ];
-  const dict = loadDictionaryFromBytes(...args);
-  const builder = new TokenizerBuilder();
-  if (builder.setDictionaryInstance) builder.setDictionaryInstance(dict);
-  if (builder.setMode) builder.setMode(mode);
-  const tk = builder.build();
-  wasmTokenizer = {
-    tokenize: (text) => tk.tokenize(text).map((t) => t.surface ?? String(t)),
-    lemmatize: (tok) => {
-      try {
-        // IPADIC details[6] = 基本形 (dictionary form); "*" = same as surface.
-        const d = tk.tokenize(tok)[0]?.details?.[6];
-        return d && d !== "*" ? d : tok;
-      } catch {
-        return tok;
-      }
-    },
-  };
-  backend = "lindera-wasm";
-  return wasmTokenizer;
-}
-
-const HIRAGANA_PARTICLE = new Set(
-  ["は", "が", "を", "に", "へ", "と", "で", "の", "も", "や", "か", "ね", "よ", "わ", "ぞ", "ぜ", "な", "さ", "て", "たり", "だり", "から", "まで", "より", "こと", "のち"]
-);
-
-// Split a hiragana run: peel known particles/auxiliaries, keep content runs whole.
-function splitHiraganaRun(run) {
-  if (run.length <= 1) return [run];
-  const out = [];
-  let buf = "";
-  const flush = () => { if (buf) { out.push(buf); buf = ""; } };
-  for (let i = 0; i < run.length; i++) {
-    const ch = run[i];
-    const two = run.slice(i, i + 2);
-    if (HIRAGANA_PARTICLE.has(two) && buf.length > 0) {
-      flush();
-      out.push(two);
-      i += 1;
-      continue;
-    }
-    if (HIRAGANA_PARTICLE.has(ch) && buf.length > 0 && run.length > 2) {
-      flush();
-      out.push(ch);
-      continue;
-    }
-    buf += ch;
-  }
-  flush();
-  return out.filter(Boolean);
-}
-
-// Longest-match split of a kanji run against lexicon (max 4 chars), else whole run.
-function splitKanjiRun(run) {
-  if (!lexicon || run.length <= 2) return [run];
-  const out = [];
-  let i = 0;
-  while (i < run.length) {
-    let hit = null;
-    for (let len = Math.min(4, run.length - i); len >= 2; len--) {
-      const cand = run.slice(i, i + len);
-      if (lexicon.has(cand)) { hit = cand; break; }
-    }
-    if (hit) { out.push(hit); i += hit.length; }
-    else { out.push(run[i]); i += 1; }
-  }
-  return out;
-}
-
-const TOKEN_RE = /[\u4E00-\u9FFF\u3400-\u4DBF]+|[\u30A0-\u30FF\uFF61-\uFF9F]+|[\u3040-\u309F]+|[A-Za-z0-9\uFF10-\uFF19\uFF21-\uFF3A\uFF41-\uFF5A]+|[^\s]/gu;
-
-function isKanjiRun(s) { return /^[\u4E00-\u9FFF\u3400-\u4DBF]+$/.test(s); }
-function isHiraganaRun(s) { return /^[\u3040-\u309F]+$/.test(s); }
-
-export function segmentBuiltin(text) {
-  if (!text) return [];
-  const chunks = text.match(TOKEN_RE) ?? [];
-  const out = [];
-  for (const c of chunks) {
-    if (isKanjiRun(c)) out.push(...splitKanjiRun(c));
-    else if (isHiraganaRun(c)) out.push(...splitHiraganaRun(c));
-    else out.push(c);
-  }
-  return out.filter((t) => t.trim().length > 0);
-}
-
-export function segment(text) {
-  if (wasmTokenizer) return wasmTokenizer.tokenize(text);
-  return segmentBuiltin(text);
-}
-
-export function lemmatize(token) {
-  if (!token) return token;
-  if (wasmTokenizer?.lemmatize) return wasmTokenizer.lemmatize(token);
-  return token; // builtin: Japanese is highly inflected; real base-form needs wasm dict
-}
-
-export const stopwords = new Set(
-  ["は", "が", "を", "に", "へ", "と", "で", "の", "も", "や", "か", "ね", "よ", "わ", "こと", "これ", "それ", "あれ", "この", "その", "あの", "ここ", "そこ", "あそこ", "だ", "です", "ます", "である", "する", "した", "して", "される", "いる", "ある", "なる", "れる", "られる", "こと", "もの", "ため", "よう", "そう", "ない", "なく", "から", "まで", "より", "て", "たり", "だり"]
-);
-
-// ---------------------------------------------------------------------------
-// 和语活用还原 deinflectJa(token) -> 有序候选（不含原形；调用方原形优先）。
-// 精度靠“原形优先 + 词典命中”：猜错形在词典里不存在，自然落选；
-// 同形歧义（如 した=舌/した，開ける=开/能写）永远先命中原形，不抢答。
-// 覆盖：五段/一段/カ変/サ変的否定·过去·て形·推量·命令·可能/被动/使役，
-// い形容词（かった/くない/ければ…），な形容词·体言的だ/な/に/だった，
-// 進行/完了/受益/尝试/假设等常见助动词链。复合链（〜ざるを得ない等）不管，送 LLM。
-// ---------------------------------------------------------------------------
+// packages/web/src/dict/ja-inflect.mjs — 日语活用还原（web 侧查词用）。
+// Owner: packages/lang-packs/src/ja.mjs（deinflectJa 及全部规则表与之一字不差，
+// 改规则只改 owner，本文件原样同步；parity 由 tests/unit/ja-inflect.test.mjs 锁）。
+// 用法见 dict-loader.ts realLookup：原形优先命中，候选只增不减，猜错形在词典里
+// 不存在自然落选（同形歧义永远先命中原形，不抢答）。
 
 const A_ROW = { か: "く", が: "ぐ", さ: "す", た: "つ", な: "ぬ", ば: "ぶ", ま: "む", ら: "る", わ: "う" };
 const E_ROW = { け: "く", げ: "ぐ", せ: "す", て: "つ", ね: "ぬ", べ: "ぶ", め: "む", れ: "る" };
@@ -201,8 +24,8 @@ function mapFinal(remainder, table, appendRu) {
   const last = remainder[remainder.length - 1];
   const mapped = table[last];
   if (mapped) return mapped.map((m) => remainder.slice(0, -1) + m);
-  if (appendRu && /[\u3041-\u3096\u30A1-\u30FA]/.test(last)) return [remainder + "る"];
-  if (!appendRu && /[\u4E00-\u9FFF\u3400-\u4DBF]/.test(remainder)) return [];
+  if (appendRu && /[ぁ-ヶｦ-ﾟ]/.test(last)) return [remainder + "る"];
+  if (!appendRu && /[一-鿿㐀-䶿]/.test(remainder)) return [];
   return appendRu ? [remainder + "る"] : [];
 }
 
@@ -315,7 +138,7 @@ function applyMode(remainder, mode) {
     case "MAI": {
       if (!remainder) return [];
       const last = remainder[remainder.length - 1];
-      if (/[\u4E00-\u9FFF\u3400-\u4DBF]/.test(last) || "くぐすつぬふぶむるう".includes(last)) return [remainder];
+      if (/[一-鿿㐀-䶿]/.test(last) || "くぐすつぬふぶむるう".includes(last)) return [remainder];
       return [remainder + "る"];
     }
     case "TOKO": {
@@ -390,4 +213,13 @@ export function deinflectJa(token) {
     }
   }
   return out.slice(0, 14);
+}
+
+// 单假名判定：Intl.Segmenter 切出来的单字假名 token（は/を/ま/た/っ…）几乎总是
+// 助词/助动词碎片或活用残片，直查词典只会撞出串味释义（は→feather、ま→just…），
+// 比缺词更坏。调用方对这类 token 直接判 miss（— + AI 入口），永不注。
+// 单字汉字（家/本/町）不受影响；合法单假名实词误伤时用户点词走 LLM。
+export function isJaKanaFragment(token) {
+  const t = String(token ?? "");
+  return t.length === 1 && /[぀-ヿｦ-ﾟ]/.test(t);
 }
