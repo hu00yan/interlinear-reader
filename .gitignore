@@ -7,3 +7,8 @@ test-results/
 playwright-report/
 .DS_Store
 .wrangler/
+
+# Defense in depth: license signing keys must live OUTSIDE this repository.
+**/license-key*
+**/license-private-key*
+**/.config/interlinear-reader/

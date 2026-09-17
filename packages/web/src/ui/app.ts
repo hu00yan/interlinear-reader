@@ -58,6 +58,13 @@ import {
   exportVocabJSON,
 } from "../vocab/store.js";
 import { parseTxt } from "../ingest/txt.js";
+import {
+  isVocabExportUnlocked,
+  saveVocabExportLicense,
+  supportsLicenseVerification,
+  LICENSE_UNSUPPORTED,
+} from "../vocab/license.js";
+import { buildVocabTSV } from "../vocab/tsv.js";
 
 type Tab = "library" | "reader" | "vocab" | "settings";
 
@@ -2751,8 +2758,80 @@ function renderVocab(main: HTMLElement, sync: () => void): void {
   const count = document.createElement("span");
   count.className = "muted";
   count.textContent = `共 ${list.length} 条（localStorage+IndexedDB 镜像，刷新不丢）`;
-  row.append(exp, count);
-  card.appendChild(row);
+  const tsv = document.createElement("button");
+  tsv.type = "button";
+  const updateLock = (unlocked: boolean): void => {
+    tsv.textContent = unlocked ? "导出 TSV（Anki）" : "导出 TSV（Anki）· 需 License";
+    tsv.dataset.unlocked = String(unlocked);
+  };
+  updateLock(false);
+  void isVocabExportUnlocked().then(updateLock);
+  const panel = document.createElement("form");
+  panel.hidden = true;
+  const label = document.createElement("label");
+  label.className = "field";
+  const caption = document.createElement("span");
+  caption.textContent = "License（付费 TSV 导出）";
+  const licenseInput = document.createElement("input");
+  licenseInput.type = "text";
+  licenseInput.autocomplete = "off";
+  licenseInput.spellcheck = false;
+  licenseInput.placeholder = "粘贴 License";
+  label.append(caption, licenseInput);
+  const validate = document.createElement("button");
+  validate.type = "submit";
+  validate.textContent = "校验";
+  const message = document.createElement("div");
+  message.className = "muted";
+  message.setAttribute("role", "status");
+  message.setAttribute("aria-live", "polite");
+  panel.append(label, validate, message);
+  panel.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    validate.disabled = true;
+    try {
+      if (!(await supportsLicenseVerification())) {
+        message.textContent = LICENSE_UNSUPPORTED;
+      } else if (await saveVocabExportLicense(licenseInput.value)) {
+        updateLock(true);
+        message.textContent = "License 已校验，TSV 导出已解锁。";
+        licenseInput.value = "";
+      } else {
+        message.textContent = "License 无效或已过期";
+      }
+    } catch {
+      message.textContent = "无法保存 License，请允许浏览器本地存储后重试。";
+    } finally {
+      validate.disabled = false;
+    }
+  });
+  tsv.addEventListener("click", async () => {
+    const unlocked = await isVocabExportUnlocked();
+    updateLock(unlocked);
+    if (!unlocked) {
+      panel.hidden = false;
+      message.textContent = (await supportsLicenseVerification())
+        ? "TSV（Anki）为付费功能，请输入 License。JSON 导出永久免费。"
+        : LICENSE_UNSUPPORTED;
+      licenseInput.focus();
+      return;
+    }
+    // Known status is maintained separately from the saved vocabulary snapshot.
+    const entries = listVocab().map((entry) => ({
+      ...entry,
+      known: isKnown(entry.lang, entry.lemma),
+    }));
+    const blob = new Blob([buildVocabTSV(entries)], {
+      type: "text/tab-separated-values;charset=utf-8",
+    });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "vocab.tsv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+  row.append(exp, tsv, count);
+  card.append(row, panel);
   main.appendChild(card);
 
   if (list.length === 0) {

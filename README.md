@@ -20,6 +20,14 @@ as the real mitigation. See
 - Prod poll: `npm run selfcheck [baseUrl]`
 - CI: `.github/workflows/verify.yml` (verify on push + nightly prod selfcheck)
 
+## 生词本导出
+
+**JSON 导出免费；TSV（Anki）导出为付费功能，需有效 License。** 在 **生词** 页点击 **导出 TSV（Anki）· 需 License**，在展开的面板输入 License 并点击 **校验**。License 离线验签，保存在当前站点的浏览器本地存储，刷新后仍可用；过期后需续期。
+
+`vocab.tsv` 是 UTF-8 纯文本，每行依次为 `lemma`、`lang`、`gloss`、`sentence`、`addedAt`（UTC ISO）、`known`、`tags`，以制表符分隔，无表头。Anki 导入时选择制表符分隔，将第七列映射为标签，并关闭 **允许在字段中使用 HTML**。制表符和换行转为空格，其他控制字符移除；标签为 `ilr lang:{lang}`。本版本不生成 `.apkg`，不包含音频、图片或书名标签。
+
+License 校验需要支持 Ed25519 的浏览器和 HTTPS（本地可用 localhost）。不支持时页面显示升级提示，JSON 导出不受影响。管理员签发步骤见 [License CLI 指南](packages/license-cli/README.md)，设计与验证见 [TSV 导出记录](docs/research/license-tsv-export.md)。
+
 ## 浏览器用户脚本（Tampermonkey）
 
 用户脚本为日语、英语网页正文添加中文逐词注释，不是 Chrome 扩展。先安装 Tampermonkey，再从仓库根目录构建：
