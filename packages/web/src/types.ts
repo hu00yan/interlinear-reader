@@ -2,23 +2,23 @@
 // Mode / LanguagePack / 缓存键规则见本文件注释。
 
 /** 源语言（7 词典包 + auto 万能）。auto 不经词典/分词包，整句送 LLM 自动识别+分词+注。 */
-export type SourceLang = 'en' | 'de' | 'fr' | 'it' | 'es' | 'ru' | 'ja' | 'auto';
-export const SOURCE_LANGS: SourceLang[] = ['en', 'de', 'fr', 'it', 'es', 'ru', 'ja', 'auto'];
+export type SourceLang = "en" | "de" | "fr" | "it" | "es" | "ru" | "ja" | "auto";
+export const SOURCE_LANGS: SourceLang[] = ["en", "de", "fr", "it", "es", "ru", "ja", "auto"];
 
 export const SOURCE_LANG_NAMES: Record<SourceLang, string> = {
-  en: 'English',
-  de: 'Deutsch',
-  fr: 'Français',
-  it: 'Italiano',
-  es: 'Español',
-  ru: 'Русский',
-  ja: '日本語',
-  auto: 'Auto · 万能（LLM）',
+  en: "English",
+  de: "Deutsch",
+  fr: "Français",
+  it: "Italiano",
+  es: "Español",
+  ru: "Русский",
+  ja: "日本語",
+  auto: "Auto · 万能（LLM）",
 };
 
 /** 目标语言 ZH+EN 可切换（锁死） */
-export type TargetLang = 'zh' | 'en';
-export const TARGET_LANGS: TargetLang[] = ['zh', 'en'];
+export type TargetLang = "zh" | "en";
+export const TARGET_LANGS: TargetLang[] = ["zh", "en"];
 
 /**
  * 三种模式（锁死）：
@@ -27,15 +27,15 @@ export const TARGET_LANGS: TargetLang[] = ['zh', 'en'];
  * C 整章 LLM
  */
 export enum Mode {
-  A = 'A',
-  B = 'B',
-  C = 'C',
+  A = "A",
+  B = "B",
+  C = "C",
 }
 
 export const MODE_DESCRIPTIONS: Record<Mode, string> = {
-  [Mode.A]: 'A · 词典全注 + 点词/点句 LLM',
-  [Mode.B]: 'B · 纯词典（不调 LLM）',
-  [Mode.C]: 'C · 整章 LLM',
+  [Mode.A]: "A · 词典全注 + 点词/点句 LLM",
+  [Mode.B]: "B · 纯词典（不调 LLM）",
+  [Mode.C]: "C · 整章 LLM",
 };
 
 /**
@@ -59,10 +59,12 @@ export interface Token {
   gloss: string | null;
   /** 全部释义（点词详情展示；行间只显示首条 gloss） */
   glosses?: string[] | null;
-  glossSource: 'dict' | 'llm' | 'cache' | null;
+  glossSource: "dict" | "llm" | "cache" | null;
   known: boolean;
   stopword: boolean;
 }
+
+export type BookBlock = { kind: "p"; text: string } | { kind: "img"; src: string; alt?: string };
 
 /** 内容摄入统一形状（EPUB/TXT/URL 都转成它） */
 export interface BookChapter {
@@ -70,11 +72,15 @@ export interface BookChapter {
   title: string;
   /** 段落原文（保留章节段落结构） */
   paragraphs: string[];
+  /** Reading order; p blocks exactly mirror paragraphs. Image src is a key in Book.assets. */
+  blocks?: BookBlock[];
 }
 
 export interface Book {
   title: string;
   lang: SourceLang;
   chapters: BookChapter[];
-  source: 'epub' | 'txt' | 'url' | 'fixture';
+  /** Referenced local images only; never data URLs or external URLs. */
+  assets?: Record<string, Blob>;
+  source: "epub" | "mobi" | "txt" | "url" | "fixture";
 }
