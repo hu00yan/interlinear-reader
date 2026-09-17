@@ -2,6 +2,7 @@ node_modules/
 artifacts/*.png
 artifacts/*.log
 artifacts/playwright.json
+artifacts/userscript-*/
 test-results/
 playwright-report/
 .DS_Store
