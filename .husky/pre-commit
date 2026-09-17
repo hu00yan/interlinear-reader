@@ -1,0 +1,14 @@
+# Pre-commit (<5s): Prettier on staged files + TypeScript check. NO tests (deliberate: tests + build run in pre-push).
+# To see type errors yourself: npx tsc --noEmit -p packages/web/tsconfig.json
+if ! npx lint-staged; then
+  echo "pre-commit BLOCKED: staged-file formatting failed."
+  echo "  Reproduce/inspect: npx lint-staged"
+  exit 1
+fi
+echo "==> typecheck (packages/web)..."
+if ! npx tsc --noEmit -p packages/web/tsconfig.json; then
+  echo ""
+  echo "✖ pre-commit BLOCKED: TypeScript errors in packages/web."
+  echo "  Reproduce/inspect:  npx tsc --noEmit -p packages/web/tsconfig.json"
+  exit 1
+fi

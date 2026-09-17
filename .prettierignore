@@ -1,0 +1,7 @@
+# Generated / evidence / large binary-ish content — never reformat
+packages/web/dist/
+artifacts/
+public/dict/
+docs/research/
+tests/fixtures/
+*.dict*

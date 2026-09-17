@@ -1,0 +1,26 @@
+# Pre-push (~1-2min): full unit tests + full build (includes tsc, vite build, and the 60KB-gzip size gate).
+# NO e2e (deliberate). To run these yourself:
+#   npm test
+#   npm run test:track-d
+#   npm run build
+echo "==> unit tests (npm test)..."
+if ! npm test; then
+  echo ""
+  echo "✖ pre-push BLOCKED: unit tests failed."
+  echo "  Reproduce/inspect:  npm test"
+  exit 1
+fi
+echo "==> reader unit tests (npm run test:track-d)..."
+if ! npm run test:track-d; then
+  echo ""
+  echo "✖ pre-push BLOCKED: reader unit tests failed."
+  echo "  Reproduce/inspect: npm run test:track-d"
+  exit 1
+fi
+echo "==> build + 60KB gzip size gate (npm run build)..."
+if ! npm run build; then
+  echo ""
+  echo "✖ pre-push BLOCKED: build or size gate failed."
+  echo "  Reproduce/inspect:  npm run build"
+  exit 1
+fi
