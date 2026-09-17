@@ -8,7 +8,7 @@ This is a userscript, not a Chrome extension. It adds **文 / Annotate** to a pa
 2. Install Tampermonkey from its official browser-store listing.
 3. Open the Tampermonkey dashboard and create a new script.
 4. Replace the editor contents with `packages/userscript/dist/interlinear-reader.user.js` and save. Alternatively, use the dashboard's file-import facility if your version provides it. Opening a local `.user.js` file directly is manager/browser dependent.
-5. **Before enabling the script, restrict its included sites in Tampermonkey settings.** The distributed header has `@match <all_urls>`; it does not implement a separate per-site enable list. Avoid mail, account, payment, medical, and other sensitive sites.
+5. **Before enabling the script, restrict its included sites in Tampermonkey settings.** The distributed header has `@match *://*/*`; it does not implement a separate per-site enable list. Avoid mail, account, payment, medical, and other sensitive sites.
 6. Reload an allowed article page and click **文 / Annotate**.
 7. Click **↩ Restore** to remove annotations and stop outstanding work.
 

@@ -39,6 +39,7 @@ function header({
   boundary,
   skel = NONE,
   frag = NONE,
+  resourceStart = NONE,
 } = {}) {
   const records = [exth(524, bytes("en"))];
   if (exthTitle) records.push(exth(503, bytes(exthTitle)));
@@ -66,6 +67,7 @@ function header({
   h.writeUInt32BE(0x40, 128);
   h.writeUInt32BE(skel, 252);
   h.writeUInt32BE(frag, 248);
+  h.writeUInt32BE(resourceStart, 108);
   return Buffer.concat([h, ext, bytes(title)]);
 }
 function pdb(records, name = "test.mobi") {
@@ -184,6 +186,40 @@ describe("binary MOBI and KF8 ingestion", () => {
       book.chapters.map((c) => c.paragraphs),
       [["日本", "Before", "Inside", "After"], ["End."]]
     );
+  });
+  it("preserves MOBI7 and KF8 embedded images, alt and order without adding text", async () => {
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=",
+      "base64"
+    );
+    for (const modern of [false, true]) {
+      const body =
+        '<p>Before<img recindex="1" alt="Cover"/>After</p>' +
+        '<img src="kindle:embed:0001?mime=image/png" alt="Again"/>' +
+        '<img recindex="999"/><img recindex="0"/><img src="https://example.com/no.png"/>';
+      const records = modern
+        ? [...kf8({ resourceStart: 6, bodies: [body, '<img recindex="1" alt="Only"/>'] }), png]
+        : [
+            header({ resourceStart: 2 }),
+            bytes(body + '<mbp:pagebreak/><img recindex="1" alt="Only"/>'),
+            png,
+          ];
+      const book = await parseMobi(pdb(records), "en");
+      assert.deepEqual(Object.keys(book.assets), ["mobi/image-0"]);
+      assert.equal(book.assets["mobi/image-0"].type, "image/png");
+      assert.deepEqual(Buffer.from(await book.assets["mobi/image-0"].arrayBuffer()), png);
+      assert.deepEqual(book.chapters[0].paragraphs, ["Before", "After"]);
+      assert.deepEqual(book.chapters[0].blocks, [
+        { kind: "p", text: "Before" },
+        { kind: "img", src: "mobi/image-0", alt: "Cover" },
+        { kind: "p", text: "After" },
+        { kind: "img", src: "mobi/image-0", alt: "Again" },
+      ]);
+      assert.deepEqual(book.chapters[1].paragraphs, []);
+      assert.deepEqual(book.chapters[1].blocks, [
+        { kind: "img", src: "mobi/image-0", alt: "Only" },
+      ]);
+    }
   });
   it("uses EXTH title and decompresses PalmDOC UTF-8 literal runs", async () => {
     const book = await parseMobi(

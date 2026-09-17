@@ -4,7 +4,7 @@ Date: 2026-09-17. Baseline: `main` @ `76fafbf` + uncommitted reviewed changes (M
 
 ## Goal (user-approved)
 
-Mixed text+image EPUB books keep images **in reading order** between text paragraphs; image-only chapters no longer disappear from the book; an image-only whole book shows images instead of failing with 「EPUB 未提取到正文段落」. No OCR — images render as-is. Annotations (dictionary/LLM) apply to text only. MOBI images: best-effort; left text-only (below).
+Mixed text+image EPUB books keep images **in reading order** between text paragraphs; image-only chapters no longer disappear from the book; an image-only whole book shows images instead of failing with 「EPUB 未提取到正文段落」. No OCR — images render as-is. Annotations (dictionary/LLM) apply to text only. MOBI images: embedded raster images preserved in reading order (below).
 
 ## Design chosen and why
 
@@ -26,7 +26,7 @@ Chosen over a parallel `imagesInOrder` map because the pagination pipeline is a 
 | `packages/web/src/reader/render.ts` | `AnnotatedParagraph.image?`; `renderOnePara` renders a fixed-height `figure.reader-image` (`object-fit: contain`) — identical in probe and page, so pagination geometry never shifts on image load |
 | `packages/web/src/ui/app.ts` | `replaceBook` (blob-URL lifecycle on import/reimport + pagehide/pageshow); flow built via `chapterFlow` in both词典 and auto branches; probe completeness counts `.reader-image` boxes; image anchor = 1 token in `flowIndexOf`; geometry cache key includes image cap; chapter TOC counts `N图`; LLM job collector skips image entries |
 | `packages/web/src/export/epub.ts` | images packaged under `OEBPS/images/`, OPF manifest entries, chapter XHTML `<img>` with OEBPS-relative src (fixed `OEBPS/OEBPS/...` double-prefix), blocks-order merge, `buildEpubFiles` now async (asset bytes) |
-| `packages/web/src/ingest/mobi.ts` | code comment: images intentionally not wired (see MOBI decision) |
+| `packages/web/src/ingest/mobi.ts` | embedded resource extraction before flattening, typed asset blobs, ordered image blocks (see MOBI support) |
 | `packages/web/scripts/verify-track-a.ts` | `buildEpubFiles` is async now — await + String() coercions |
 
 ## Consumer migration list (audited, all 25 `.paragraphs` consumers)
@@ -41,9 +41,13 @@ An image block reserves `height = page capacity (cap)` px, one full-column slot,
 
 Exported EPUB includes images in reading order, referenced as `images/imgN.<ext>` relative to `OEBPS/`, with OPF manifest `media-type` from the stored Blob and escaped alt text. Round-trip re-import restores identical block order and byte-identical assets (`tests/unit/image-roundtrip.test.mjs`, which failed before the `OEBPS/`-prefix fix and passes after).
 
-## MOBI/AZW3 decision: text-only (honest limitation)
+## MOBI/AZW3 support (2026-09-17 follow-up)
 
-The vendored foliate API exposes `loadRecindex`/`loadResource` and KF8 documents carry `img[recindex]`, so wiring is *possible*, but the current MOBI pipeline flattens documents through `extractXhtml` before chapter assembly; threading image blocks through would require a second resource pipeline (recindex→Blob→`Book.assets`) plus per-book KF8 flow-order verification. Per the agreed "do NOT fake support", MOBI remains text-only with an explicit comment in `mobi.ts`; image-only MOBI still reports its text-only limitation. No OCR anywhere.
+The earlier text-only decision is superseded. Before `extractXhtml`, the adapter resolves decimal `img[recindex]` references (MOBI7 and KF8) and base-32 `kindle:embed:` image sources (KF8). Both IDs are one-based; resource offset 0 corresponds to `recindex="1"`, not `recindex="0"`. The shared `MOBI.loadResource(index)` returns raw bytes and handles the shared resource base in combo files. Unlike the MOBI7 wrapper's Blob-URL API, this path needs no temporary object URLs or fetches.
+
+JPEG, PNG, GIF, WebP and BMP signatures produce typed `Book.assets` blobs. Image sources become stable asset keys before flattening; ordered blocks keep alt text, deduplicate asset bytes and preserve image-only sections. Missing, invalid, remote and unsupported image references are dropped without discarding text. CSS backgrounds, SVG resources, fonts, original fixed-layout positioning and OCR remain unsupported. Images never enter `paragraphs`, dictionary tokens or LLM gloss requests.
+
+Verification: `tests/unit/mobi-ingest.test.mjs` checks real synthetic MOBI7/KF8 record structures, mixed `p,img,p` order, alt text, byte-identical assets, duplicate references, missing records and image-only sections. Read-only `~/Downloads/水手比利·巴德…azw3` uses `kindle:embed:0003?mime=image/jpeg`: its 223,331-byte cover is extracted as `mobi/image-2` and renders in fresh headless Chromium, Mode B, on loopback port 5213. Evidence: `/private/var/folders/pw/zr39lg6537l37bwc6gtzs0780000gn/T/opencode/three-fixes-20260917-Ndwrvr/` (`fix1-unit.log`, `fix1-build.log`, `fix1-browser.json`, `azw3-cover-1280.png`). No source book was modified or uploaded.
 
 ## Memory policy for big books
 

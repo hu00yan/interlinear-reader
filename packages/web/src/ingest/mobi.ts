@@ -93,35 +93,80 @@ async function validateMobi(file: File): Promise<void> {
   }
 }
 
-/** Text-only import. createDocument avoids resource rewriting, fonts, and blob URLs.
- * MOBI7 pagebreaks and KF8 skeleton/fragment order supply the section boundaries.
- * Language selection intentionally matches EPUB: the caller's choice wins.
- * Images (KF8 recindex / MOBI7 recindex=<record>): intentionally NOT wired. The
- * vendored foliate API exposes loadRecindex, but document order here is already
- * flattened through extractXhtml; threading image blocks through would need a
- * second resource pipeline (recindex→Blob→Book.assets) plus KF8 flow-order
- * verification per book. Left text-only on purpose; see docs/research/image-support.md.
+/** Only embedded raster images become assets; never fetch document URLs. */
+function imageType(data: ArrayBuffer): string | undefined {
+  const b = new Uint8Array(data);
+  const starts = (...bytes: number[]): boolean => bytes.every((v, i) => b[i] === v);
+  if (starts(0xff, 0xd8, 0xff)) return "image/jpeg";
+  if (starts(137, 80, 78, 71, 13, 10, 26, 10)) return "image/png";
+  const head = new TextDecoder().decode(b.subarray(0, 12));
+  if (/^GIF8[79]a/.test(head)) return "image/gif";
+  if (head.startsWith("RIFF") && head.slice(8) === "WEBP") return "image/webp";
+  if (head.startsWith("BM")) return "image/bmp";
+}
+
+/** MOBI7 pagebreaks and KF8 skeleton/fragment order supply section boundaries.
+ * Preserve embedded images before flattening; the caller's language choice wins.
  */
 export async function parseMobi(file: File, lang: SourceLang): Promise<Book> {
   await validateMobi(file);
   console.info(FOLIATE_MOBI_LICENSE);
   const { MOBI } = await import("./foliate-mobi.js");
-  const parsed = await new MOBI({}).open(file);
+  const parser = new MOBI({});
+  const parsed = await parser.open(file);
   try {
+    const assets: Record<string, Blob> = Object.create(null);
     const chapters: BookChapter[] = [];
     for (const [i, section] of parsed.sections.entries()) {
       if (section.linear === "no" || !section.createDocument) continue;
       const doc = await section.createDocument();
-      const { title, paragraphs } = extractXhtml(new XMLSerializer().serializeToString(doc));
-      if (paragraphs.length)
-        chapters.push({ id: `ch${i + 1}`, title: title || `Chapter ${i + 1}`, paragraphs });
+      for (const img of doc.querySelectorAll("img")) {
+        const recindex = img.getAttribute("recindex");
+        const embed = /^kindle:embed:([0-9a-v]+)(?:\?mime=[\w/+.-]+)?$/i.exec(
+          img.getAttribute("src") || ""
+        );
+        // recindex is decimal, Kindle embed IDs are base 32; both are one-based.
+        const index =
+          recindex !== null && /^\d+$/.test(recindex)
+            ? Number(recindex) - 1
+            : embed
+              ? parseInt(embed[1], 32) - 1
+              : -1;
+        const key = `mobi/image-${index}`;
+        if (Number.isSafeInteger(index) && index >= 0) {
+          try {
+            if (!assets[key]) {
+              // Shared raw loader handles the resource base of standalone and combo files.
+              const data = await parser.loadResource(index);
+              const type = imageType(data);
+              if (type) assets[key] = new Blob([data], { type });
+            }
+            if (assets[key]) {
+              img.setAttribute("src", key);
+              continue;
+            }
+          } catch {
+            // A missing image must not discard readable text.
+          }
+        }
+        img.remove();
+      }
+      const {
+        title,
+        paragraphs,
+        blocks: extracted,
+      } = extractXhtml(new XMLSerializer().serializeToString(doc));
+      const blocks = extracted.filter((b) => b.kind === "p" || !!assets[b.src]);
+      if (blocks.length)
+        chapters.push({ id: `ch${i + 1}`, title: title || `Chapter ${i + 1}`, paragraphs, blocks });
     }
-    if (!chapters.length) throw new Error("MOBI/AZW3 未提取到正文段落（不支持图片扫描/OCR）");
+    if (!chapters.length) throw new Error("MOBI/AZW3 未提取到正文段落或支持的图片（不支持 OCR）");
     return {
       title: parsed.metadata.title?.trim() || file.name.replace(/\.(mobi|azw3|azw)$/i, ""),
       lang,
       chapters,
       source: "mobi",
+      assets,
     };
   } finally {
     parsed.destroy();

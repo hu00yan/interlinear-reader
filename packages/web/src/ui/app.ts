@@ -461,9 +461,14 @@ function renderLibrary(main: HTMLElement, sync: () => void): void {
     state.status = "解析中…";
     sync();
     try {
+      const extension = /\.([^.]+)$/.exec(f.name)?.[1].toLowerCase() || "";
       const mobi =
-        /\.(mobi|azw3|azw)$/i.test(f.name) ||
+        ["mobi", "azw3", "azw"].includes(extension) ||
         new TextDecoder().decode(await f.slice(60, 68).arrayBuffer()) === "BOOKMOBI";
+      if (!mobi && !["epub", "mobi", "azw3", "azw", "txt", "md"].includes(extension))
+        throw new Error(
+          `不支持的文件类型：${extension ? `.${extension}` : "无扩展名"}（支持 .epub/.mobi/.azw3/.azw/.txt/.md）`
+        );
       const book = mobi
         ? await (await import("../ingest/mobi.js")).parseMobi(f, lang)
         : /\.epub$/i.test(f.name)
