@@ -1,0 +1,60 @@
+{
+  "title": "Local format reading baseline",
+  "plan": [
+    {
+      "id": "horizontal",
+      "title": "Vertical Japanese EPUB is readable as horizontal source text",
+      "category": "Reading",
+      "verifier": "program",
+      "method": "Import local EPUB in guarded Tabbit, inspect rendered source and computed writing-mode",
+      "expected": "Readable Japanese in horizontal-tb, original sentence order",
+      "requiredEvidence": ["text"]
+    },
+    {
+      "id": "ruby",
+      "title": "Ruby readings do not become extra source words",
+      "category": "Reading fidelity",
+      "verifier": "program",
+      "method": "Import original synthetic ruby fixture and read source excluding gloss nodes",
+      "expected": "日本へ行く。 without inline にほん or parentheses",
+      "requiredEvidence": ["text", "screenshot"]
+    },
+    {
+      "id": "images",
+      "title": "Illustrations and image-only chapters remain available",
+      "category": "Reading fidelity",
+      "verifier": "program",
+      "method": "Import mixed synthetic EPUB and inspect chapter list and reader images",
+      "expected": "Three spine chapters including illustration-only chapter and visible illustration",
+      "requiredEvidence": ["text"]
+    },
+    {
+      "id": "all-image",
+      "title": "Image-only EPUB gives an actionable visible limitation",
+      "category": "Import errors",
+      "verifier": "program",
+      "method": "Import original all-image EPUB through file input",
+      "expected": "Visible EPUB 未提取到正文段落 error rather than silent success",
+      "requiredEvidence": ["text", "screenshot"]
+    },
+    {
+      "id": "continuity",
+      "title": "Turning pages preserves source text order without omission",
+      "category": "Reading",
+      "verifier": "program",
+      "method": "Traverse synthetic multi-page EPUB at desktop and narrow widths",
+      "expected": "Collected visible source equals original in chapter order",
+      "requiredEvidence": ["text"]
+    },
+    {
+      "id": "boundaries",
+      "title": "Unsupported file formats are distinguished from supported imports",
+      "category": "Import",
+      "verifier": "program",
+      "method": "Inspect file accept and separately force synthetic unsupported-extension imports",
+      "expected": "Unsupported files rejected explicitly, not interpreted as plain text",
+      "requiredEvidence": ["text"]
+    }
+  ],
+  "cases": []
+}
