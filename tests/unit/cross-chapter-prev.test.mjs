@@ -25,13 +25,31 @@ const measured = (plan) =>
   )[0];
 const endIntent =
   source.match(/  const landAtChapterEnd = .*;/)?.[0] ?? "const landAtChapterEnd = false;";
-const stabilize = source.match(
-  /      const anchor = .*;[\s\S]*?(?=      const pg2 = plan2.pages\[state.page\])/
-)[0];
-const autoReflow =
-  source.match(
-    /          const anchorFi = .*;[\s\S]*?state.page = Math.max\(0, Math.min\(findFlowPage\(planAuto2.pages, anchorTok\), totalPages - 1\)\);/
-  )[0] + "\n}";
+// Format-immune extraction: slice from a stable start marker to a stable end
+// marker instead of matching exact whitespace (source formatting shifts broke
+// single-line regex assumptions before).
+const from = (startMarker, endMarker) => {
+  const a = source.indexOf(startMarker);
+  const b = source.indexOf(endMarker, a);
+  if (a < 0 || b < 0) return null;
+  return source.slice(a, b + endMarker.length);
+};
+const stabilize = from(
+  "      const anchor = landAtChapterEnd",
+  "state.page = Math.max(0, Math.min(findFlowPage(plan2.pages, anchor), totalPages - 1));"
+);
+if (!stabilize)
+  throw new Error("stabilize anchor block not found in app.ts — update this test's source markers");
+const autoReflow = (() => {
+  const startMarker = "          const anchorFi = pageFlowIdx.length ? pageFlowIdx[0] : 0;";
+  const endMarker = "Math.min(findFlowPage(planAuto2.pages, anchorTok), totalPages - 1)";
+  const chunk = from(startMarker, endMarker);
+  if (!chunk)
+    throw new Error(
+      "autoReflow anchor block not found in app.ts — update this test's source markers"
+    );
+  return chunk + "\n}";
+})();
 
 function harness(estimate, count) {
   // Ten source paragraphs, ten tokens each. The last paragraph spans pages
