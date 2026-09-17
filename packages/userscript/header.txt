@@ -1,0 +1,24 @@
+// ==UserScript==
+// @name         Interlinear Reader — In-page glosses
+// @name:zh-CN   行间阅读器 — 网页逐词注释
+// @namespace    interlinear-reader
+// @version      0.1.0
+// @description  Japanese/English article glosses in Chinese, with optional private-key LLM backfill.
+// @description:zh-CN 为日语和英语网页正文添加中文词义，可选自备 API 密钥补全。
+// @license      MIT
+// @match        *://*/*
+// @connect      pub-3d23245bf2874c8cbdf740c1d2761ada.r2.dev
+// @connect      *
+// @grant        GM_xmlhttpRequest
+// @grant        GM_getValue
+// @grant        GM_setValue
+// @grant        GM_registerMenuCommand
+// @grant        GM_openInTab
+// @sandbox      DOM
+// @run-at       document-idle
+// @noframes
+// ==/UserScript==
+// Tampermonkey does not support @match <all_urls>; *://*/* covers HTTP(S) pages.
+// @sandbox DOM retains DOM access with GM grants, without requiring unsafeWindow.
+// Wildcard @connect supports your configured endpoint; narrow it to its host in Tampermonkey.
+// Restrict included sites in Tampermonkey before enabling. No remote executable code.
