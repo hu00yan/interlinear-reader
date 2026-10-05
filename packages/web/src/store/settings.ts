@@ -1,4 +1,4 @@
-import { Mode, type TargetLang } from '../types.js';
+import { Mode, type TargetLang } from "../types.js";
 
 export interface Settings {
   baseUrl: string;
@@ -19,35 +19,39 @@ export interface Settings {
   pageSize: number;
   /** 全书术语表：整书跑一次 LLM 提炼专名/术语固定译法，提升同一词在全书的一致性（有 key 时生效，一次性费用）。 */
   bookGlossary: boolean;
+  /** 纯文本模式：开启后干掉所有图片与原书格式（走旧版纯文本分页链路）。默认关闭——即默认保真版式。 */
+  plainTextMode: boolean;
+  /** 保真版式的翻页方式：scroll=整章滚动 / single=单页翻页 / double=双页翻页。 */
+  richNav: "scroll" | "single" | "double";
 }
 
-const KEY = 'ilr.settings.v1';
+const KEY = "ilr.settings.v1";
 /**
  * CONTRACT 键（CONTRACT.md 主张，不动原文，此处做双写/迁移兼容）：
  * - `ilr:key`：BYOK 原始 key，只去 LLM provider 域，永不随 /api/* 发送。
  * - `ilr:mode`：模式，小写 `a|b|c`（内部 Mode 枚举为大写 A/B/C，此处映射）。
  * 规范存储仍是 `ilr.settings.v1` JSON；save 时双写两份，load 时迁移合并。
  */
-export const CONTRACT_KEY = 'ilr:key';
-export const CONTRACT_MODE = 'ilr:mode';
+export const CONTRACT_KEY = "ilr:key";
+export const CONTRACT_MODE = "ilr:mode";
 
-export function modeToContractValue(mode: Mode): 'a' | 'b' | 'c' {
-  return mode === Mode.B ? 'b' : mode === Mode.C ? 'c' : 'a';
+export function modeToContractValue(mode: Mode): "a" | "b" | "c" {
+  return mode === Mode.B ? "b" : mode === Mode.C ? "c" : "a";
 }
 
 export function modeFromContractValue(v: unknown): Mode | null {
-  const s = String(v ?? '').toLowerCase();
-  if (s === 'a') return Mode.A;
-  if (s === 'b') return Mode.B;
-  if (s === 'c') return Mode.C;
+  const s = String(v ?? "").toLowerCase();
+  if (s === "a") return Mode.A;
+  if (s === "b") return Mode.B;
+  if (s === "c") return Mode.C;
   return null;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  baseUrl: 'https://api.openai.com/v1',
-  apiKey: '',
-  model: 'gpt-4o-mini',
-  target: 'zh',
+  baseUrl: "https://api.openai.com/v1",
+  apiKey: "",
+  model: "gpt-4o-mini",
+  target: "zh",
   mode: Mode.A,
   costCapUSD: 5,
   costUsedUSD: 0,
@@ -57,6 +61,8 @@ export const DEFAULT_SETTINGS: Settings = {
   freqHideTopN: 0,
   pageSize: 20,
   bookGlossary: true,
+  plainTextMode: false,
+  richNav: "single",
 };
 
 export function loadSettings(): Settings {
@@ -65,6 +71,9 @@ export function loadSettings(): Settings {
     const raw = localStorage.getItem(KEY);
     if (!raw) base = { ...DEFAULT_SETTINGS };
     else base = { ...DEFAULT_SETTINGS, ...(JSON.parse(raw) as Partial<Settings>) };
+    // 旧版 richLayout 迁移：关过保真版式 == 现在的纯文本模式。
+    const legacy = (JSON.parse(raw ?? "{}") as { richLayout?: boolean }).richLayout;
+    if (legacy === false) base.plainTextMode = true;
   } catch {
     base = { ...DEFAULT_SETTINGS };
   }

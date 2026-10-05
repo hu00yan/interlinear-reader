@@ -66,35 +66,78 @@ export async function parseEpub(file: File, lang: SourceLang): Promise<Book> {
   const mediaByPath = new Map([...manifest.values()].map((m) => [m.href, m.media]));
   const assets: Record<string, Blob> = Object.create(null);
   const chapters: BookChapter[] = [];
+  const styleTexts: string[] = [];
+  const seenStyles = new Set<string>();
   for (let i = 0; i < spine.length; i++) {
     const path = spine[i];
     const f = getFile(path) ?? getFile(path.split("/").pop()!);
     if (!f) continue;
     const xhtml = await f.async("text");
-    const { title: ct, paragraphs, blocks: extracted } = extractXhtml(xhtml);
+    // 在 DOM 上改写图片 src 为 assets 键（保真版式要用 body.innerHTML，顺序先于 extractXhtml）。
+    const doc = new DOMParser().parseFromString(xhtml, "application/xhtml+xml");
+    const docRoot: Document = doc.querySelector("parsererror")
+      ? new DOMParser().parseFromString(xhtml, "text/html")
+      : (doc as unknown as Document);
+    for (const el of docRoot.querySelectorAll("img, image")) {
+      const rawSrc =
+        el.getAttribute("src") ||
+        el.getAttribute("href") ||
+        el.getAttributeNS("http://www.w3.org/1999/xlink", "href");
+      if (!rawSrc) continue;
+      const src = resolveEpubPath(path, rawSrc);
+      const media = src ? mediaByPath.get(src) : undefined;
+      const entry = src ? getFile(src) : null;
+      if (!src || !media?.startsWith("image/") || !entry) {
+        el.removeAttribute("src");
+        el.removeAttribute("href");
+        continue;
+      }
+      if (!assets[src]) assets[src] = new Blob([await entry.async("arraybuffer")], { type: media });
+      el.setAttribute("src", src);
+      el.removeAttribute("href");
+    }
+    for (const link of docRoot.querySelectorAll("link[rel~='stylesheet']")) {
+      const href = link.getAttribute("href");
+      if (!href) continue;
+      const cssPath = resolveEpubPath(path, href);
+      if (!cssPath || seenStyles.has(cssPath)) continue;
+      const cssEntry = getFile(cssPath);
+      if (cssEntry) {
+        styleTexts.push(await cssEntry.async("text"));
+        seenStyles.add(cssPath);
+      }
+    }
+    const rewritten =
+      typeof XMLSerializer !== "undefined"
+        ? new XMLSerializer().serializeToString(docRoot)
+        : (docRoot.documentElement?.outerHTML ?? xhtml);
+    const { title: ct, paragraphs, blocks: extracted } = extractXhtml(rewritten);
+    const html = docRoot.querySelector("body")?.innerHTML?.trim() || "";
     const blocks: BookBlock[] = [];
     for (const block of extracted) {
       if (block.kind === "p") {
         blocks.push(block);
         continue;
       }
-      const src = resolveEpubPath(path, block.src);
+      // DOM 改写后 src 已是 assets 键（路径）；旧块可能直接是 assets 键或相对路径，两者都兼容。
+      const src = mediaByPath.has(block.src) ? block.src : resolveEpubPath(path, block.src);
       const media = src ? mediaByPath.get(src) : undefined;
       const entry = src ? getFile(src) : null;
       if (!src || !media?.startsWith("image/") || !entry) continue;
       if (!assets[src]) assets[src] = new Blob([await entry.async("arraybuffer")], { type: media });
       blocks.push({ ...block, src });
     }
-    if (!blocks.length) continue;
+    if (!blocks.length && !html) continue;
     chapters.push({
       id: `ch${i + 1}`,
       title: ct || (paragraphs.length ? `Chapter ${i + 1}` : `插图 ${i + 1}`),
       paragraphs,
       blocks,
+      html,
     });
   }
   if (chapters.length === 0) throw new Error("EPUB 未提取到正文段落");
-  return { title, lang, chapters, source: "epub", assets };
+  return { title, lang, chapters, source: "epub", assets, styles: styleTexts.join("\n") };
 }
 
 /** 自写 XHTML 提取：h1-h3 作标题候选，p/h4-li 转段落，去 script/style，保留文本顺序 */

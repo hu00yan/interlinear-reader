@@ -103,7 +103,7 @@ export interface ParaSlice {
  * 根因：LLM 回填后只换了 gloss 文本，旧实现整页 paintColumns() 重建 DOM；
  * 抽成纯更新函数后 patchGlosses 可只改有变化的节点，翻页/回填不再闪整页。
  */
-function applyGlossState(
+export function applyGlossState(
   w: HTMLElement,
   gl: HTMLElement,
   t: Token,

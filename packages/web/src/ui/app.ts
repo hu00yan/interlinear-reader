@@ -25,6 +25,7 @@ import {
   type AnnotatedParagraph,
 } from "../reader/render.js";
 import { tokenizeParagraph } from "../reader/tokenize.js";
+import { renderRich } from "../reader/richrender.js";
 import { BookImageUrls, chapterFlow, flowLength } from "../reader/blocks.js";
 import {
   estimateParaHeightPx,
@@ -594,13 +595,6 @@ function renderLibrary(main: HTMLElement, sync: () => void): void {
 
   const row3 = document.createElement("div");
   row3.className = "row";
-  const fixBtn = document.createElement("button");
-  fixBtn.type = "button";
-  fixBtn.textContent = "载入示例（fixture）";
-  fixBtn.addEventListener("click", () => {
-    void ensureFixture(true).then(sync);
-  });
-  row3.appendChild(fixBtn);
   const hint = document.createElement("span");
   hint.className = "muted";
   hint.textContent = "无 key 也可读：示例 + mock 词典逐词注出";
@@ -1131,7 +1125,7 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
     d.innerHTML =
       `<div class="empty-mark" aria-hidden="true">📖</div>` +
       `<strong>还没有在读的书</strong>` +
-      `<div class="muted">去「书架」上传 EPUB / TXT，或一键载入示例；无 key 也能靠词典逐词对照。</div>`;
+      `<div class="muted">去「书架」上传 EPUB / TXT；无 key 也能靠词典逐词对照。</div>`;
     const b = document.createElement("button");
     b.className = "primary";
     b.textContent = "去书架";
@@ -1437,6 +1431,8 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
   let checkColumns: (() => number) | null = null;
   let paintNotice: (() => void) | null = null;
   let updatePagerChrome: (() => void) | null = null;
+  /** 保真版式：chrome 挂载后用真实列高重算栏高/页数（首绘量的高被 pager/cost 挤掉一点，不修正会栏底半行永久切掉）。 */
+  let stabilizeRich: (() => void) | null = null;
   // 章界无缝：全书首夜/末页才禁用，章内 1/N 语义保留（info 仍显示 章内 page+1/totalPages）
   let isFirstOfBook = state.chapterIdx === 0 && state.page <= 0;
   let isLastOfBook = state.chapterIdx === totalChapters - 1 && state.page >= totalPages - 1;
@@ -1623,26 +1619,40 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
       flowCacheKey = fullKeyAuto + "::noai";
       flowColW = colW0;
       flowProbeOpts = probeOptsAuto;
-      const planAuto = paginateChapterFlow(
-        flowAuto,
-        flowCacheKey,
-        cap0,
-        columnsUsed,
-        colW0,
-        probeOptsAuto
-      );
-      totalPages = Math.max(1, planAuto.pages.length);
-      rememberFlowPages(flowCacheKey, planAuto.pages);
-      if (pendingFlowAnchor != null) {
-        state.page = findFlowPage(planAuto.pages, pendingFlowAnchor);
-        pendingFlowAnchor = null;
+      if (!s.plainTextMode) {
+        totalPages = 1;
+        renderFlow = flowAuto;
+        flowOrig = flowAutoOrig;
+        leftSlices = flowAuto.map((p, i) => ({ para: i, from: 0, to: p.tokens.length }));
+        rightSlices = [];
+        slice = [...flowAuto];
+        capUsedForPaging = cap0;
+        columnsUsed = single0 ? 1 : 2;
+        flowCacheKey = fullKeyAuto + "::noai";
+        flowColW = colW0;
+        flowProbeOpts = probeOptsAuto;
+      } else {
+        const planAuto = paginateChapterFlow(
+          flowAuto,
+          flowCacheKey,
+          cap0,
+          columnsUsed,
+          colW0,
+          probeOptsAuto
+        );
+        totalPages = Math.max(1, planAuto.pages.length);
+        rememberFlowPages(flowCacheKey, planAuto.pages);
+        if (pendingFlowAnchor != null) {
+          state.page = findFlowPage(planAuto.pages, pendingFlowAnchor);
+          pendingFlowAnchor = null;
+        }
+        state.page = Math.max(0, Math.min(state.page, totalPages - 1));
+        const pgAuto = planAuto.pages[state.page];
+        const cutAuto = single0 ? pgAuto.endTok : pgAuto.cutTok;
+        leftSlices = slicesForTokenRange(planAuto.geom, pgAuto.startTok, cutAuto);
+        rightSlices = single0 ? [] : slicesForTokenRange(planAuto.geom, cutAuto, pgAuto.endTok);
+        renderFlow = flowAuto;
       }
-      state.page = Math.max(0, Math.min(state.page, totalPages - 1));
-      const pgAuto = planAuto.pages[state.page];
-      const cutAuto = single0 ? pgAuto.endTok : pgAuto.cutTok;
-      leftSlices = slicesForTokenRange(planAuto.geom, pgAuto.startTok, cutAuto);
-      rightSlices = single0 ? [] : slicesForTokenRange(planAuto.geom, cutAuto, pgAuto.endTok);
-      renderFlow = flowAuto;
       // 当前页 flow 段（去重保序）→ 只注这些原文段（费用语义不变）
       const seenAuto = new Set<number>();
       const pageFlowIdx: number[] = [];
@@ -1714,7 +1724,7 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
           save();
         }
         if (seq !== readerSeq) return;
-        if (spentAuto > 0) {
+        if (spentAuto > 0 && s.plainTextMode) {
           // 首访本页：LLM 刚改写了 token 边界，按新几何重排一次，锚定本页首段不跳页
           //（否则切片仍是伪切分口径，变长段的尾部 token 在任何页都不可达）。
           const anchorFi = pageFlowIdx.length ? pageFlowIdx[0] : 0;
@@ -1939,27 +1949,39 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
       flowCacheKey = fullKey + (aiFlag ? "::ai" : "::noai");
       flowColW = colW;
       flowProbeOpts = probeOpts;
-      const plan = paginateChapterFlow(flow, flowCacheKey, cap, columnsUsed, colW, probeOpts);
-      totalPages = Math.max(1, plan.pages.length);
-      rememberFlowPages(flowCacheKey, plan.pages);
-      if (pendingFlowAnchor != null) {
-        state.page = findFlowPage(plan.pages, pendingFlowAnchor);
-        pendingFlowAnchor = null;
-      }
-      state.page = Math.max(0, Math.min(state.page, totalPages - 1));
-      const pg = plan.pages[state.page];
-      const cut = single ? pg.endTok : pg.cutTok;
-      leftSlices = slicesForTokenRange(plan.geom, pg.startTok, cut);
-      rightSlices = single ? [] : slicesForTokenRange(plan.geom, cut, pg.endTok);
-      renderFlow = flow;
-      slice = [];
-      {
-        const seenP = new Set<number>();
-        for (const sl of [...leftSlices, ...rightSlices]) {
-          if (!seenP.has(sl.para)) {
-            seenP.add(sl.para);
-            const fp = flow[sl.para];
-            if (fp) slice.push(fp);
+      let plan: ReturnType<typeof paginateChapterFlow> | null = null;
+      if (!s.plainTextMode) {
+        // 保真版式：整章不分页，.tok/.gloss 直接叠加在原文 DOM 上；几何不依赖探针。
+        // 页数在 paint 后由栏溢出宽度实测；这里不重置 state.page，由 paint 钳位。
+        totalPages = 1;
+        renderFlow = full;
+        flowOrig = full.map((_, i) => i);
+        leftSlices = full.map((p, i) => ({ para: i, from: 0, to: p.tokens.length }));
+        rightSlices = [];
+        slice = [...full];
+      } else {
+        plan = paginateChapterFlow(flow, flowCacheKey, cap, columnsUsed, colW, probeOpts);
+        totalPages = Math.max(1, plan.pages.length);
+        rememberFlowPages(flowCacheKey, plan.pages);
+        if (pendingFlowAnchor != null) {
+          state.page = findFlowPage(plan.pages, pendingFlowAnchor);
+          pendingFlowAnchor = null;
+        }
+        state.page = Math.max(0, Math.min(state.page, totalPages - 1));
+        const pg = plan.pages[state.page];
+        const cut = single ? pg.endTok : pg.cutTok;
+        leftSlices = slicesForTokenRange(plan.geom, pg.startTok, cut);
+        rightSlices = single ? [] : slicesForTokenRange(plan.geom, cut, pg.endTok);
+        renderFlow = flow;
+        slice = [];
+        {
+          const seenP = new Set<number>();
+          for (const sl of [...leftSlices, ...rightSlices]) {
+            if (!seenP.has(sl.para)) {
+              seenP.add(sl.para);
+              const fp = flow[sl.para];
+              if (fp) slice.push(fp);
+            }
           }
         }
       }
@@ -2027,6 +2049,7 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
       const nextPageJobs = (
         kind: "a" | "c"
       ): { jobs: { text: string; missing: string[] }[]; context: string } | null => {
+        if (!s.plainTextMode || !plan || !plan.pages) return null;
         const np = plan.pages[state.page + 1];
         if (!np) return null;
         const cutN = single ? np.endTok : np.cutTok;
@@ -2090,12 +2113,102 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
       left.appendChild(leftReader);
       right.appendChild(rightReader);
       body.append(left, right);
+      if (!s.plainTextMode) {
+        // 保真版式：按 s.richNav（滚动/单页/双页）渲染原文 HTML，注释叠加于文本节点。
+        left.classList.add("rich-page");
+        // 双开用同一区域：左栏跨两格（右栏隐藏），两内栏即两"页"。
+        left.style.gridColumn = "1 / -1";
+        right.style.display = "none";
+        const opts = {
+          mode: s.mode,
+          showGloss: s.showGloss,
+          filters: {
+            hideStopwords: s.hideStopwords,
+            hideKnown: s.hideKnown,
+            freqHideTopN: s.freqHideTopN,
+          },
+          lang: book.lang,
+          showAIButton: book.lang === "auto" ? false : s.mode === Mode.A,
+          onTokenClick: (t: Token, sentence: string) =>
+            showSheet(main, book.lang, t, sentence, sync),
+          onSentenceAI: (sentence: string) => {
+            void explainSentence(book.lang, sentence, sync);
+          },
+        };
+        const chap = book.chapters[state.chapterIdx];
+        leftReader.style.height = "100%";
+        renderRich(leftReader, book, chap, renderFlow, opts, (src) => bookImageUrls.get(src));
+        patchPaintedGlosses = (): void => {
+          patchGlosses(leftReader, renderFlow, opts);
+        };
+        leftReader.setAttribute("data-testid", "rich-reader");
+        const docEl = leftReader.querySelector<HTMLElement>(".rich-doc");
+        if (s.richNav === "scroll") {
+          // 数值滚动：单栏、全章纵向滚动，无翻页。
+          leftReader.style.overflow = "auto";
+          totalPages = 1;
+          state.page = 0;
+          if (docEl) {
+            docEl.style.maxWidth = "46rem";
+            docEl.style.width = "";
+            docEl.style.height = "";
+            docEl.style.columnWidth = "";
+            docEl.style.columnGap = "";
+            docEl.style.transform = "";
+          }
+        } else {
+          // 单页/双页翻页：定栏宽 + 高度锁页 + translateX 翻页。
+          leftReader.style.overflow = "hidden";
+          if (docEl) {
+            const W = Math.max(160, leftReader.clientWidth);
+            const H = Math.max(80, leftReader.clientHeight);
+            const cols = s.richNav === "double" && !singleCol ? 2 : 1;
+            const gap = cols === 2 ? 48 : 0;
+            const colW = Math.floor((W - gap * (cols - 1)) / cols);
+            docEl.style.maxWidth = "none";
+            docEl.style.width = `${W}px`;
+            docEl.style.height = `${H}px`;
+            docEl.style.columnWidth = `${colW}px`;
+            docEl.style.columnGap = `${gap}px`;
+            const stride = W + gap;
+            totalPages = Math.max(1, Math.ceil((docEl.scrollWidth + gap) / stride));
+            state.page = Math.max(0, Math.min(state.page, totalPages - 1));
+            docEl.style.transform = `translateX(${-state.page * stride}px)`;
+          }
+        }
+        body.setAttribute("data-page", String(state.page));
+        // chrome（pager/cost/notice）挂载后会挤压列高：首绘用的是预挂载高度，必须在实稳时修正栏高+重算总页数，
+        // 否则栏底会永久半行切掉（surface 可见、gloss 下半行被 overflow 裁掉）。
+        stabilizeRich = (): void => {
+          if (s.richNav === "scroll" || !docEl) return;
+          const W = Math.max(160, leftReader.clientWidth);
+          const H = Math.max(80, leftReader.clientHeight);
+          const prevH = parseFloat(docEl.style.height) || 0;
+          if (Math.abs(H - prevH) <= 2) return;
+          const cols = s.richNav === "double" && !singleCol ? 2 : 1;
+          const gap = cols === 2 ? 48 : 0;
+          const colW = Math.floor((W - gap * (cols - 1)) / cols);
+          docEl.style.width = `${W}px`;
+          docEl.style.height = `${H}px`;
+          docEl.style.columnWidth = `${colW}px`;
+          docEl.style.columnGap = `${gap}px`;
+          const stride = W + gap;
+          totalPages = Math.max(1, Math.ceil((docEl.scrollWidth + gap) / stride));
+          state.page = Math.max(0, Math.min(state.page, totalPages - 1));
+          docEl.style.transform = `translateX(${-state.page * stride}px)`;
+          body.setAttribute("data-page", String(state.page));
+        };
+        // 不 return：边沟/滑动/data-page 走公共路径；下方列渲染已被纯文本模式守卫跳过。
+      }
       // 分页与渲染同帧同视口，列数不会翻转；窄屏合流到左列（右列 display:none 但保留 DOM，保证 e2e/verify 口径）。
       // 合流时左右切片本就首尾相接（同页 token 区间），续排类依然正确。
       const lSlices = singleCol ? [...leftSlices, ...rightSlices] : leftSlices;
       const rSlices = singleCol ? [] : rightSlices;
-      if (singleCol) right.style.display = "none";
-      else right.style.display = "";
+      // 保真版式下右页始终隐藏（左页跨整行），不要这一步把它复活。
+      if (s.plainTextMode) {
+        if (singleCol) right.style.display = "none";
+        else right.style.display = "";
+      }
       const opts = {
         mode: s.mode,
         showGloss: s.showGloss,
@@ -2112,12 +2225,14 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
           void explainSentence(book.lang, sentence, sync);
         },
       };
-      renderSlices(leftReader, renderFlow, lSlices, opts);
-      renderSlices(rightReader, renderFlow, rSlices, opts);
-      // 增量回填入口：只更新有变化的 .gloss，不重建列 DOM（保留选中态/滚动/焦点）。
-      patchPaintedGlosses = (): void => {
-        for (const col of [leftReader, rightReader]) patchGlosses(col, renderFlow, opts);
-      };
+      if (s.plainTextMode) {
+        renderSlices(leftReader, renderFlow, lSlices, opts);
+        renderSlices(rightReader, renderFlow, rSlices, opts);
+        // 增量回填入口：只更新有变化的 .gloss，不重建列 DOM（保留选中态/滚动/焦点）。
+        patchPaintedGlosses = (): void => {
+          for (const col of [leftReader, rightReader]) patchGlosses(col, renderFlow, opts);
+        };
+      }
       // 改判段标 lang（屏读按段切换发音；无改判时空操作）。
       try {
         const fb = fallbackLangByKey.get(
@@ -2195,6 +2310,7 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
     // 自检：行级算术应保证零溢出；>2px 即记 warn（浏览器证据口径，不做静默修正）。
     checkColumns = (): number => {
       let worst = 0;
+      if (!s.plainTextMode) return 0;
       try {
         const pc = paintedCols;
         if (!pc) return 0;
@@ -2473,9 +2589,21 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
     if (seq !== readerSeq) return;
     fitReaderChrome();
     checkColumns?.();
+    if (!s.plainTextMode) {
+      // 保真版式：真实列高落定后修正栏高/页数（收敛一层即可），再刷页脚。
+      try {
+        stabilizeRich?.();
+      } catch {
+        // 布局异常不阻塞
+      }
+      paintNotice?.();
+      updatePagerChrome?.();
+      return;
+    }
     let rounds = 0;
     const stabilize = (): void => {
-      if (seq !== readerSeq || rounds >= 2 || !flowProbeOpts || !paintColumns) return;
+      if (seq !== readerSeq || rounds >= 2 || !flowProbeOpts || !paintColumns || s.plainTextMode)
+        return;
       let realCap = 0;
       try {
         realCap = getColumnContentHeight(columnsUsed === 1);
@@ -3121,8 +3249,32 @@ function renderSettings(main: HTMLElement, sync: () => void): void {
       "全书术语表（整书一次，提升专名/术语一致性）",
       () => s.bookGlossary,
       (v) => (s.bookGlossary = v)
+    ),
+    mkCheck(
+      "纯文本模式（干掉所有图片与原书格式，只留文字+逐词注音）",
+      () => s.plainTextMode,
+      (v) => (s.plainTextMode = v)
     )
   );
+  const richNavSel = document.createElement("select");
+  richNavSel.setAttribute("data-testid", "richnav-switch");
+  for (const [v, label] of [
+    ["scroll", "滚动（整章连续）"],
+    ["single", "单页翻页"],
+    ["double", "双页翻页"],
+  ] as const) {
+    const o = document.createElement("option");
+    o.value = v;
+    o.textContent = label;
+    richNavSel.appendChild(o);
+  }
+  richNavSel.value = s.richNav;
+  richNavSel.addEventListener("change", () => {
+    s.richNav = richNavSel.value as Settings["richNav"];
+    save();
+    sync();
+  });
+  card2.append(field("版式翻页方式", richNavSel));
   const capRow = document.createElement("div");
   capRow.className = "row";
   const cap = document.createElement("input");

@@ -20,7 +20,7 @@ const turn = (name) =>
 const measured = (plan) =>
   source.match(
     new RegExp(
-      `      if \\(pendingFlowAnchor != null\\) \\{\\n        state.page = findFlowPage\\(${plan}\\.pages,[\\s\\S]*?state.page = Math.max\\(0, Math.min\\(state.page, totalPages - 1\\)\\);`
+      `\\s*if \\(pendingFlowAnchor != null\\) \\{\\n\\s*state.page = findFlowPage\\(${plan}\\.pages,[\\s\\S]*?state.page = Math.max\\(0, Math.min\\(state.page, totalPages - 1\\)\\);`
     )
   )[0];
 const endIntent =

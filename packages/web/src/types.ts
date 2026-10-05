@@ -74,6 +74,12 @@ export interface BookChapter {
   paragraphs: string[];
   /** Reading order; p blocks exactly mirror paragraphs. Image src is a key in Book.assets. */
   blocks?: BookBlock[];
+  /**
+   * 保真原版式：章节正文 HTML（图片 src 已改写为 assets 键）。
+   * 渲染时直接注入并在文本节点上叠加逐词释义，保留粗体/斜体/字号/行内图。
+   * 缺省时由 paragraphs 合成。
+   */
+  html?: string;
 }
 
 export interface Book {
@@ -82,5 +88,7 @@ export interface Book {
   chapters: BookChapter[];
   /** Referenced local images only; never data URLs or external URLs. */
   assets?: Record<string, Blob>;
+  /** 书内样式表（epub/mobi 自带 CSS 拼接，消毒后注入渲染容器） */
+  styles?: string;
   source: "epub" | "mobi" | "txt" | "url" | "fixture";
 }

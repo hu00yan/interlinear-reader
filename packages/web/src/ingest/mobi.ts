@@ -117,6 +117,7 @@ export async function parseMobi(file: File, lang: SourceLang): Promise<Book> {
   try {
     const assets: Record<string, Blob> = Object.create(null);
     const chapters: BookChapter[] = [];
+    const styleTexts: string[] = [];
     for (const [i, section] of parsed.sections.entries()) {
       if (section.linear === "no" || !section.createDocument) continue;
       const doc = await section.createDocument();
@@ -158,7 +159,18 @@ export async function parseMobi(file: File, lang: SourceLang): Promise<Book> {
       } = extractXhtml(new XMLSerializer().serializeToString(doc));
       const blocks = extracted.filter((b) => b.kind === "p" || !!assets[b.src]);
       if (blocks.length)
-        chapters.push({ id: `ch${i + 1}`, title: title || `Chapter ${i + 1}`, paragraphs, blocks });
+        chapters.push({
+          id: `ch${i + 1}`,
+          title: title || `Chapter ${i + 1}`,
+          paragraphs,
+          blocks,
+          html: doc.body?.innerHTML?.trim() || "",
+        });
+      const styles = doc.querySelectorAll("style");
+      for (const st of styles) {
+        const text = st.textContent?.trim();
+        if (text) styleTexts.push(text);
+      }
     }
     if (!chapters.length) throw new Error("MOBI/AZW3 未提取到正文段落或支持的图片（不支持 OCR）");
     return {
@@ -167,6 +179,7 @@ export async function parseMobi(file: File, lang: SourceLang): Promise<Book> {
       chapters,
       source: "mobi",
       assets,
+      styles: styleTexts.join("\n"),
     };
   } finally {
     parsed.destroy();
