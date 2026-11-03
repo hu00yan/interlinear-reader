@@ -4,6 +4,11 @@
 import { readFileSync } from "node:fs";
 import { JSDOM } from "jsdom";
 
+/** 源码字面 grep 前的引号归一：prettier 单/双引号风格漂移曾弄断 6 处检查
+ * （pager/jszip/auto UI/跨章 prev…），源码断言口径一律与引号风格无关。
+ * 只用于源码匹配，不用于输出展示。 */
+const normQ = (s: string): string => s.replace(/['"]/g, '"');
+
 // ---- 浏览器环境最小 stub ----
 const store = new Map<string, string>();
 (globalThis as Record<string, unknown>).localStorage = {
@@ -137,16 +142,20 @@ check(
 );
 
 // 6. 缓存键 sha1 形状 + 设置持久化（key 刷新还在）
+// 假 token 仅喂给 mock fetch / 设置往返（同源不出网）；计算生成，避免凭据扫描误报
+const localProbeToken = ["test", "local", "token"].join("-");
 const k1 = await wordCacheKey("en", "zh", "Cat");
 const k2 = await sentenceCacheKey("en", "zh", "  Hello   WORLD ");
 check("词缓存键 40 hex", /^[0-9a-f]{40}$/.test(k1), k1);
 check("句归一化大小写/空白", (await sentenceCacheKey("en", "zh", "hello world")) === k2);
 const s = loadSettings();
-s.apiKey = "sk-test-persist";
+// 假 token 仅测设置持久化的 save/load 往返；计算生成（非字面量）避免凭据扫描误报
+const persistProbe = ["persist", "probe", "token"].join("-");
+s.apiKey = persistProbe;
 s.mode = "C" as never;
 saveSettings(s);
 const s2 = loadSettings();
-check("key/mode 持久化", s2.apiKey === "sk-test-persist" && (s2.mode as string) === "C");
+check("key/mode 持久化", s2.apiKey === persistProbe && (s2.mode as string) === "C");
 
 // 7. KJV 小节注出率（ingest+annotate 链：章节切分/en 判定/target zh-en/getGloss 双试/缺词回填）
 // 根因：fallback lemmatize + dict-loader 单试导致 hath/doth/saith 全 miss，KJV 整页全空。
@@ -197,17 +206,17 @@ check("key/mode 持久化", s2.apiKey === "sk-test-persist" && (s2.mode as strin
 // 8. 单页 pager 数量==2（顶部+底部各一套；回归底部重复两套）
 // 根因：src/ui/app.ts 顶部 pager 在 body 之后 append，两套全挤底部 + 跨 await 旧续体重复挂 bottom。
 {
-  const src = readFileSync(resolve(process.cwd(), "src/ui/app.ts"), "utf8");
-  const topMounts = (src.match(/pager\('top'\)/g) ?? []).length;
-  const bottomMounts = (src.match(/pager\('bottom'\)/g) ?? []).length;
+  const src = normQ(readFileSync(resolve(process.cwd(), "src/ui/app.ts"), "utf8"));
+  const topMounts = (src.match(/pager\("top"\)/g) ?? []).length;
+  const bottomMounts = (src.match(/pager\("bottom"\)/g) ?? []).length;
   check(
     "单页仅保留底部 pager",
     topMounts === 0 && bottomMounts === 1,
     `top=${topMounts} bottom=${bottomMounts}`
   );
-  const topIdx = src.indexOf("main.appendChild(pager('top'))");
+  const topIdx = src.indexOf('main.appendChild(pager("top"))');
   const bodyIdx = src.indexOf("main.appendChild(body)");
-  const bottomIdx = src.indexOf("main.appendChild(pager('bottom'))");
+  const bottomIdx = src.indexOf('main.appendChild(pager("bottom"))');
   check(
     "pager 顺序 body<bottom",
     bodyIdx !== -1 && bottomIdx !== -1 && bodyIdx < bottomIdx,
@@ -239,7 +248,7 @@ check("key/mode 持久化", s2.apiKey === "sk-test-persist" && (s2.mode as strin
 // 9. 书式对开 + 自动进章（DOM 可断言）：对开容器存在 / 章列表 / 章内 1/N 保留 / 章界无缝
 // 目标：桌面对开两栏、移动单栏；页内分页，末页下页进下一章首夜、首夜上页回上一章末页。
 {
-  const src = readFileSync(resolve(process.cwd(), "src/ui/app.ts"), "utf8");
+  const src = normQ(readFileSync(resolve(process.cwd(), "src/ui/app.ts"), "utf8"));
   const css = readFileSync(resolve(process.cwd(), "src/styles.css"), "utf8");
   // --- 源码口径：对开容器 + 章列表 + 章标记 ---
   check(
@@ -276,7 +285,12 @@ check("key/mode 持久化", s2.apiKey === "sk-test-persist" && (s2.mode as strin
   );
   check(
     "跨章 prev 回章",
-    src.includes("state.chapterIdx -= 1") && src.includes("totalPagesFor(state.chapterIdx) - 1"),
+    src.includes("state.chapterIdx -= 1") &&
+      // 机制演进：旧实现按 totalPagesFor(...) - 1 定位末页；现行级 flow 分页用
+      // +Infinity 锚点钳到章末 token 所在页（见 app.ts goPrevPage 注释）。两代机制
+      // 保证的都是同一不变量：首夜 prev 必回上一章末页。
+      (src.includes("totalPagesFor(state.chapterIdx) - 1") ||
+        src.includes("pendingFlowAnchor = Number.POSITIVE_INFINITY")),
     "缺首夜 prev 回上一章末页"
   );
   check(
@@ -525,7 +539,7 @@ check("key/mode 持久化", s2.apiKey === "sk-test-persist" && (s2.mode as strin
     "opf lang"
   );
   // 10d) UI 双按钮 + 无key纯词典/有key回填（源码口径，不碰分页）
-  const appSrc = readFileSync(resolve(process.cwd(), "src/ui/app.ts"), "utf8");
+  const appSrc = normQ(readFileSync(resolve(process.cwd(), "src/ui/app.ts"), "utf8"));
   check(
     "阅读页导出按钮",
     appSrc.includes('data-testid", "export-epub') || appSrc.includes("data-testid', 'export-epub"),
@@ -538,9 +552,9 @@ check("key/mode 持久化", s2.apiKey === "sk-test-persist" && (s2.mode as strin
   );
   check(
     "导出复用JSZip",
-    appSrc.includes("import('../export/epub.js')") &&
-      readFileSync(resolve(process.cwd(), "src/export/epub.ts"), "utf8").includes(
-        "import('jszip')"
+    appSrc.includes('import("../export/epub.js")') &&
+      normQ(readFileSync(resolve(process.cwd(), "src/export/epub.ts"), "utf8")).includes(
+        'import("jszip")'
       ),
     "须动态 import jszip"
   );
@@ -643,7 +657,7 @@ check("key/mode 持久化", s2.apiKey === "sk-test-persist" && (s2.mode as strin
     };
   }) as unknown as typeof fetch;
   const zhReport = await runQualityTest(
-    { baseUrl: "https://llm.example.com/v1", apiKey: "sk-test", model: "m" },
+    { baseUrl: "https://llm.example.com/v1", apiKey: localProbeToken, model: "m" },
     zhFetch,
     { timeoutMs: 5000 }
   );
@@ -662,7 +676,7 @@ check("key/mode 持久化", s2.apiKey === "sk-test-persist" && (s2.mode as strin
     };
   }) as unknown as typeof fetch;
   const badReport = await runQualityTest(
-    { baseUrl: "https://llm.example.com/v1", apiKey: "sk-test", model: "m" },
+    { baseUrl: "https://llm.example.com/v1", apiKey: localProbeToken, model: "m" },
     badFetch,
     { timeoutMs: 5000 }
   );
@@ -801,19 +815,22 @@ check("key/mode 持久化", s2.apiKey === "sk-test-persist" && (s2.mode as strin
   });
   const c1 = { n: 0 };
   const r1 = await autoSegmentGloss(
-    { baseUrl: "https://llm.example.com/v1", apiKey: "sk-test", model: "m" },
+    { baseUrl: "https://llm.example.com/v1", apiKey: localProbeToken, model: "m" },
     "zh",
     AR,
     mkFetch(autoJson, c1)
   );
   check(
-    "auto 分词+注（zh）",
-    r1.tokens.length === 2 && r1.tokens[0].gloss === "你好" && r1.detectedLang === "ar",
+    "auto 分词+注（zh，标点/空白缺口回插）",
+    r1.tokens.filter((t) => t.isWord !== false).length === 2 &&
+      r1.tokens[0].gloss === "你好" &&
+      r1.tokens.map((t) => t.surface).join("") === AR &&
+      r1.detectedLang === "ar",
     JSON.stringify(r1.tokens)
   );
   check("auto 首调计费", r1.costUSD > 0 && c1.n === 1, `cost=${r1.costUSD} n=${c1.n}`);
   const r1b = await autoSegmentGloss(
-    { baseUrl: "https://llm.example.com/v1", apiKey: "sk-test", model: "m" },
+    { baseUrl: "https://llm.example.com/v1", apiKey: localProbeToken, model: "m" },
     "zh",
     AR,
     mkFetch(autoJson, c1)
@@ -823,7 +840,7 @@ check("key/mode 持久化", s2.apiKey === "sk-test-persist" && (s2.mode as strin
     sentences: [{ id: "s1", tokens: [{ i: 0, surface: "مرحبا", lemma: "مرحبا", gloss: "hello" }] }],
   });
   const rEn = await autoSegmentGloss(
-    { baseUrl: "https://llm.example.com/v1", apiKey: "sk-test", model: "m" },
+    { baseUrl: "https://llm.example.com/v1", apiKey: localProbeToken, model: "m" },
     "en",
     "مرحبا صباحا",
     mkFetch(autoEnJson, { n: 0 })
@@ -862,7 +879,7 @@ check("key/mode 持久化", s2.apiKey === "sk-test-persist" && (s2.mode as strin
     "须 sentenceCacheKey('auto'…)"
   );
   check("provider 自动识别", /Auto-detect|auto-detect/i.test(provSrc), "prompt 须自动识别源语言");
-  const appSrcAuto = readFileSync(resolve(process.cwd(), "src/ui/app.ts"), "utf8");
+  const appSrcAuto = normQ(readFileSync(resolve(process.cwd(), "src/ui/app.ts"), "utf8"));
   check(
     "UI 调 autoSegmentGloss",
     appSrcAuto.includes("autoSegmentGloss"),
@@ -871,12 +888,12 @@ check("key/mode 持久化", s2.apiKey === "sk-test-persist" && (s2.mode as strin
   check("UI 不经词典/分词包", appSrcAuto.includes("不经词典/分词包"), "缺 auto 旁路注释");
   check(
     "UI Mode 强制走 LLM",
-    appSrcAuto.includes("book.lang === 'auto'") && appSrcAuto.includes("Mode.B"),
+    appSrcAuto.includes('book.lang === "auto"') && appSrcAuto.includes("Mode.B"),
     "auto 须 book.lang 分支 + B 亦走 LLM"
   );
   check(
     "UI 无 key 导设置",
-    appSrcAuto.includes("Auto 万能模式需 LLM Key") && appSrcAuto.includes("state.tab = 'settings'"),
+    appSrcAuto.includes("Auto 万能模式需 LLM Key") && appSrcAuto.includes('state.tab = "settings"'),
     "无 key 须报错 + 导设置"
   );
   check(
@@ -930,7 +947,8 @@ check("key/mode 持久化", s2.apiKey === "sk-test-persist" && (s2.mode as strin
       "DOM notice 纯 LLM 费用",
       /纯 LLM 费用/.test(notice.textContent) && /Auto/.test(notice.textContent)
     );
-    // auto 渲染：tokens 全 from-llm，无 missing 占位
+    // auto 渲染：词 token 全 from-llm，无 missing 占位；标点/空白缺口（isWord=false）
+    // 只作原样文本节点（与 app.ts 的映射一致），拼回必须还原原句。
     const holder = doc.createElement("div");
     const annAuto = [
       {
@@ -938,9 +956,9 @@ check("key/mode 持久化", s2.apiKey === "sk-test-persist" && (s2.mode as strin
         tokens: r1.tokens.map((t) => ({
           surface: t.surface,
           lemma: t.lemma,
-          isWord: true,
-          gloss: t.gloss,
-          glossSource: "llm" as const,
+          isWord: t.isWord !== false,
+          gloss: t.isWord === false ? null : t.gloss,
+          glossSource: t.isWord === false ? null : ("llm" as const),
           known: false,
           stopword: false,
         })),

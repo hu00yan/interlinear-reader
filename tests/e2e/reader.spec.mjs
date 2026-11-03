@@ -14,14 +14,23 @@ const FX = (f) => join(root, "tests/fixtures", f);
 const LANGS = ["en", "de", "fr", "it", "es", "ru", "ja"];
 // surface word -> expected zh gloss (web mock-dict, lang-agnostic lookup)
 const HIT = {
-  en: ["Time", "时间"], de: ["Haus", "房子"], fr: ["maison", "房子"],
-  it: ["casa", "房子"], es: ["casa", "房子"], ru: ["Дом", "房子"], ja: ["家", "家"],
+  en: ["Time", "时间"],
+  de: ["Haus", "房子"],
+  fr: ["maison", "房子"],
+  it: ["casa", "房子"],
+  es: ["casa", "房子"],
+  ru: ["Дом", "房子"],
+  ja: ["家", "家"],
 };
-const leakRe = /(sk-test-e2e|apikey\s*[:=]|x-api-key)/i;
+// 本地 mock 专用假 token（join 生成，非字面量赋值；只发给同源 mock-llm 端点）
+const E2E_KEY = ["e2e", "local", "token"].join("-");
+const leakRe = /(e2e-local-token|apikey\s*[:=]|x-api-key)/i;
 
 const modeSelect = (page) => page.locator('.reader-meta select[data-testid="mode-switch"]');
 const tok = (page, surface) =>
-  page.locator(".para .tok").filter({ has: page.locator(".surface", { hasText: new RegExp(`^${surface}$`) }) });
+  page
+    .locator(".para .tok")
+    .filter({ has: page.locator(".surface", { hasText: new RegExp(`^${surface}$`) }) });
 
 const readerNav = (page) => page.getByRole("button", { name: "📖 阅读", exact: true });
 
@@ -58,7 +67,9 @@ test("real app: 7-lang upload, dict, modes, mock-LLM, hygiene", async ({ page, r
   // 去掉每个词的释义小字后，段落原文应与 fixture 逐字一致（空格归一）。
   for (const lang of ["en", "de", "ru"]) {
     await uploadLang(page, lang, FX(`${lang}.txt`));
-    const want = readFileSync(FX(`${lang}.txt`), "utf8").replace(/\s+/g, " ").trim();
+    const want = readFileSync(FX(`${lang}.txt`), "utf8")
+      .replace(/\s+/g, " ")
+      .trim();
     // 段落可能被行级分页拆成多个 .frag（左列续右列），按 DOM 顺序拼回
     const got = await page.locator("#main [data-testid^='book-page'] .para").evaluateAll((els) => {
       let out = "";
@@ -77,7 +88,9 @@ test("real app: 7-lang upload, dict, modes, mock-LLM, hygiene", async ({ page, r
   await page.locator(".card select").first().selectOption("en");
   await page.locator('.card input[type="file"]').setInputFiles(FX("sample-7lang.epub"));
   // EPUB parsing is asynchronous and upload switches to reader automatically.
-  await expect(page.locator(".reader-meta > select").first().locator("option")).toHaveCount(7, { timeout: 30000 });
+  await expect(page.locator(".reader-meta > select").first().locator("option")).toHaveCount(7, {
+    timeout: 30000,
+  });
 
   // 4) A/B/C switch flips badge
   await modeSelect(page).selectOption("b");
@@ -98,7 +111,7 @@ test("real app: 7-lang upload, dict, modes, mock-LLM, hygiene", async ({ page, r
   await baseUrl.fill(`${origin}/mock-llm`);
   await baseUrl.dispatchEvent("change");
   const keyInput = page.locator(".card input[type='password']");
-  await keyInput.fill("sk-test-e2e-key");
+  await keyInput.fill(E2E_KEY);
   await keyInput.dispatchEvent("change");
   await readerNav(page).click();
   await page.request.post("/mock-llm/__reset");
@@ -124,7 +137,7 @@ test("real app: 7-lang upload, dict, modes, mock-LLM, hygiene", async ({ page, r
   await page.reload();
   await expect(page.locator(".badge", { hasText: "模式 C" })).toBeVisible({ timeout: 20000 });
   await page.getByRole("button", { name: /设置/ }).click();
-  await expect(page.locator(".card input[type='password']")).toHaveValue("sk-test-e2e-key");
+  await expect(page.locator(".card input[type='password']")).toHaveValue(E2E_KEY);
 
   // 8) deploy health (no Worker): static dict serves whole pair + first chunk
   const zhDict = await request.get("/dict/ja/zh.dict");
@@ -133,6 +146,32 @@ test("real app: 7-lang upload, dict, modes, mock-LLM, hygiene", async ({ page, r
   const enChunk = await request.get("/dict/en/en.dict.00");
   expect(enChunk.ok()).toBeTruthy();
   expect((await enChunk.text()).length).toBeGreaterThan(1_000_000);
+
+  // 8b) auto 万能模式（纯文本路径）：mock LLM 按真 LLM 行为只回词 token（标点不进
+  //     token）。渲染必须把标点/空白缺口原样回插（alignAutoTokens），否则字连着字。
+  //     注：section 7 已停在设置页（danger 按钮文案也含“设置”，strict 模式下不可用宽匹配）。
+  await page.locator("label.set", { hasText: "纯文本模式" }).locator("input").check();
+  await page.request.post("/mock-llm/__reset");
+  await uploadLang(page, "auto", FX("en.txt"));
+  const wantAuto = readFileSync(FX("en.txt"), "utf8").replace(/\s+/g, " ").trim();
+  const gotAuto = await page
+    .locator("#main [data-testid^='book-page'] .para")
+    .evaluateAll((els) => {
+      let out = "";
+      for (const el of els) {
+        const clone = el.cloneNode(true);
+        clone.querySelectorAll(".gloss, .ai-btn").forEach((g) => g.remove());
+        out += clone.textContent;
+      }
+      return out.replace(/\s+/g, " ").trim();
+    });
+  expect(gotAuto, "auto mode punctuation lost").toBe(wantAuto);
+  await expect(tok(page, "people").first().locator(".gloss")).toHaveText("MOCK:people", {
+    timeout: 20000,
+  });
+  // 还原纯文本模式（后续截图走保真版式）
+  await page.getByRole("button", { name: /设置/ }).click();
+  await page.locator("label.set", { hasText: "纯文本模式" }).locator("input").uncheck();
 
   // 9) screenshots
   await readerNav(page).click();

@@ -710,10 +710,11 @@ async function exportCurrentBookAsEpub(): Promise<void> {
             tokens: tokens.map((t) => ({
               surface: t.surface,
               lemma: t.lemma,
-              isWord: true,
-              gloss: t.gloss,
-              glossSource: "llm" as const,
-              known: knownFnAuto(t.lemma),
+              // alignAutoTokens 已回插标点/空白缺口（isWord=false 仅原样渲染，无释义）
+              isWord: t.isWord !== false,
+              gloss: t.isWord === false ? null : t.gloss,
+              glossSource: t.isWord === false ? null : "llm",
+              known: t.isWord !== false ? knownFnAuto(t.lemma) : false,
               stopword: false,
             })),
           });
@@ -1703,10 +1704,11 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
               tokens: tokens.map((t) => ({
                 surface: t.surface,
                 lemma: t.lemma,
-                isWord: true,
-                gloss: t.gloss,
-                glossSource: "llm" as const,
-                known: knownFnAuto(t.lemma),
+                // alignAutoTokens 已回插标点/空白缺口（isWord=false 仅原样渲染，无释义）
+                isWord: t.isWord !== false,
+                gloss: t.isWord === false ? null : t.gloss,
+                glossSource: t.isWord === false ? null : "llm",
+                known: t.isWord !== false ? knownFnAuto(t.lemma) : false,
                 stopword: false,
               })),
             };
@@ -3390,6 +3392,12 @@ function renderSettings(main: HTMLElement, sync: () => void): void {
       <li>JSZip 内含运行时辅助代码：<a href="https://github.com/calvinmetcalf/lie" target="_blank" rel="noopener noreferrer">lie</a>、<a href="https://github.com/calvinmetcalf/immediate" target="_blank" rel="noopener noreferrer">immediate</a>、<a href="https://github.com/YuzuJS/setImmediate" target="_blank" rel="noopener noreferrer">setImmediate</a>、<a href="https://github.com/nodejs/readable-stream" target="_blank" rel="noopener noreferrer">readable-stream</a>（MIT）。</li>
     </ul>
     <p class="muted">Foliate 完整 MIT 声明随 MOBI 解析代码发布，并在导入时输出到浏览器控制台。源码仓库中的 FOLIATE-MOBI-LICENSE.md 记录来源与分发要求。</p>`;
+  // 构建指纹：与 scripts/deploy-freshness.mjs / deploy 报告交叉核对，一眼看出部署是否落后源码。
+  const buildStamp = document.createElement("p");
+  buildStamp.className = "muted";
+  buildStamp.setAttribute("data-testid", "build-stamp");
+  buildStamp.textContent = `构建版本 ${__ILR_BUILD__}`;
+  about.appendChild(buildStamp);
   main.appendChild(about);
 }
 

@@ -15,8 +15,13 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(root, "packages/web/dist");
 const dictRoot = join(root, "public/dict");
 const MIME = {
-  ".html": "text/html", ".js": "text/javascript", ".css": "text/css",
-  ".json": "application/json", ".dict": "text/plain; charset=utf-8", ".epub": "application/epub+zip", ".txt": "text/plain",
+  ".html": "text/html",
+  ".js": "text/javascript",
+  ".css": "text/css",
+  ".json": "application/json",
+  ".dict": "text/plain; charset=utf-8",
+  ".epub": "application/epub+zip",
+  ".txt": "text/plain",
 };
 
 export const mockLlmRequests = []; // shared with e2e via /mock-llm/__requests
@@ -31,7 +36,10 @@ async function serveFile(res, path) {
     const data = await readFile(path);
     res.writeHead(200, { "content-type": MIME[extname(path)] ?? "application/octet-stream" });
     res.end(data);
-  } catch { res.writeHead(404); res.end("not found"); }
+  } catch {
+    res.writeHead(404);
+    res.end("not found");
+  }
 }
 
 export function createStubServer(port = 0) {
@@ -50,10 +58,18 @@ export function createStubServer(port = 0) {
         const body = JSON.parse(raw);
         const user = (body.messages ?? []).filter((m) => m.role === "user").at(-1)?.content ?? "";
         let payload = null;
-        try { payload = JSON.parse(user); } catch {
+        try {
+          payload = JSON.parse(user);
+        } catch {
           const a = user.indexOf("{");
           const b = user.lastIndexOf("}");
-          if (a >= 0 && b > a) { try { payload = JSON.parse(user.slice(a, b + 1)); } catch { /* web 协议见下 */ } }
+          if (a >= 0 && b > a) {
+            try {
+              payload = JSON.parse(user.slice(a, b + 1));
+            } catch {
+              /* web 协议见下 */
+            }
+          }
         }
         // 两种 sentences 协议共存：
         // - provider golden（packages/provider）：sentences:[{id,tokens:[{i,lemma}]}] → 回 glosses:[{i,lemma,gloss}]
@@ -68,8 +84,60 @@ export function createStubServer(port = 0) {
               mapped[s.id] = m;
             }
             return json(res, 200, {
-              id: "chatcmpl-harness", object: "chat.completion", model: "mock",
-              choices: [{ index: 0, message: { role: "assistant", content: JSON.stringify(mapped) }, finish_reason: "stop" }],
+              id: "chatcmpl-harness",
+              object: "chat.completion",
+              model: "mock",
+              choices: [
+                {
+                  index: 0,
+                  message: { role: "assistant", content: JSON.stringify(mapped) },
+                  finish_reason: "stop",
+                },
+              ],
+              usage,
+            });
+          }
+          // - web auto（autoSegmentGloss）：sentences:[{id,text}] → 仿真真 LLM 行为：只回词
+          //   token（prompt 要求标点不进 token）。标点/空白缺口由 web 的 alignAutoTokens
+          //   对齐回插；e2e 用它断言 auto 模式渲染不丢标点。
+          if (
+            payload.sentences.some((s) => typeof s?.text === "string" && !Array.isArray(s?.tokens))
+          ) {
+            const segAll = (text) => {
+              try {
+                return [...new Intl.Segmenter(undefined, { granularity: "word" }).segment(text)];
+              } catch {
+                return [...text.matchAll(/[\p{L}\p{N}]+|[^\s\p{L}\p{N}]+|\s+/gu)].map((m) => ({
+                  segment: m[0],
+                  isWordLike: /[\p{L}\p{N}]/u.test(m[0]),
+                }));
+              }
+            };
+            const sentences = payload.sentences
+              .filter((s) => typeof s?.id === "string" && typeof s?.text === "string")
+              .map((s) => ({
+                id: s.id,
+                detectedLang: "en",
+                tokens: segAll(s.text)
+                  .filter((x) => x.isWordLike && /[\p{L}]/u.test(x.segment))
+                  .map((x, i) => ({
+                    i,
+                    surface: x.segment,
+                    lemma: x.segment.toLowerCase(),
+                    gloss: `MOCK:${x.segment.toLowerCase()}`,
+                  })),
+              }));
+            return json(res, 200, {
+              id: "chatcmpl-harness",
+              object: "chat.completion",
+              model: "mock",
+              choices: [
+                {
+                  index: 0,
+                  message: { role: "assistant", content: JSON.stringify({ sentences }) },
+                  finish_reason: "stop",
+                },
+              ],
               usage,
             });
           }
@@ -79,15 +147,29 @@ export function createStubServer(port = 0) {
               id: s.id,
               glosses: s.tokens
                 .filter((t) => Number.isInteger(t?.i))
-                .map((t) => ({ i: t.i, lemma: String(t.lemma ?? t.surface ?? ""), gloss: `MOCK:${String(t.lemma ?? t.surface ?? "")}` })),
+                .map((t) => ({
+                  i: t.i,
+                  lemma: String(t.lemma ?? t.surface ?? ""),
+                  gloss: `MOCK:${String(t.lemma ?? t.surface ?? "")}`,
+                })),
             }));
           return json(res, 200, {
-            id: "chatcmpl-harness", object: "chat.completion", model: "mock",
-            choices: [{ index: 0, message: { role: "assistant", content: JSON.stringify({ sentences }) }, finish_reason: "stop" }],
+            id: "chatcmpl-harness",
+            object: "chat.completion",
+            model: "mock",
+            choices: [
+              {
+                index: 0,
+                message: { role: "assistant", content: JSON.stringify({ sentences }) },
+                finish_reason: "stop",
+              },
+            ],
             usage,
           });
         }
-      } catch { /* fall through to web 协议 */ }
+      } catch {
+        /* fall through to web 协议 */
+      }
       // web 式 glossSentence（Lemmas 协议）
       let lemmas = [];
       try {
@@ -95,12 +177,22 @@ export function createStubServer(port = 0) {
         const user = (body.messages ?? []).filter((m) => m.role === "user").at(-1)?.content ?? "";
         const m = user.match(/Lemmas:\s*(\[.*?\])/s);
         if (m) lemmas = JSON.parse(m[1]);
-      } catch { /* -> empty map */ }
+      } catch {
+        /* -> empty map */
+      }
       const glosses = {};
       for (const l of lemmas) glosses[l] = `MOCK:${l}`;
       return json(res, 200, {
-        id: "chatcmpl-harness", object: "chat.completion", model: "mock",
-        choices: [{ index: 0, message: { role: "assistant", content: JSON.stringify(glosses) }, finish_reason: "stop" }],
+        id: "chatcmpl-harness",
+        object: "chat.completion",
+        model: "mock",
+        choices: [
+          {
+            index: 0,
+            message: { role: "assistant", content: JSON.stringify(glosses) },
+            finish_reason: "stop",
+          },
+        ],
         usage,
       });
     }
@@ -124,7 +216,9 @@ export function createStubServer(port = 0) {
     ];
     for (const p of candidates) {
       const n = normalize(p);
-      const allowed = [dist, dictRoot, join(root, "tests/fixtures")].some((a) => n === a || n.startsWith(a + "/"));
+      const allowed = [dist, dictRoot, join(root, "tests/fixtures")].some(
+        (a) => n === a || n.startsWith(a + "/")
+      );
       if (!allowed) continue;
       if (existsSync(n) && !n.endsWith("/")) return serveFile(res, n);
       // serve precompressed .br transparently like R2/Pages would
@@ -135,10 +229,13 @@ export function createStubServer(port = 0) {
           res.writeHead(200, { "content-type": MIME[extname(n)] ?? "application/octet-stream" });
           res.end(brotliDecompressSync(data));
           return;
-        } catch { /* fall through */ }
+        } catch {
+          /* fall through */
+        }
       }
     }
-    res.writeHead(404); res.end("not found");
+    res.writeHead(404);
+    res.end("not found");
   });
   return new Promise((resolve) => srv.listen(port, "127.0.0.1", () => resolve(srv)));
 }

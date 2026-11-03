@@ -2,10 +2,11 @@
 // key 只存浏览器 localStorage、浏览器直调 LLM，无代理、无服务端。
 // 缺词走 `provider.glossSentence()`（契约锁死）。
 
-import type { SourceLang, TargetLang } from '../types.js';
-import { sentenceCacheKey } from '../lib/hash.js';
-import { sentenceMemGet, sentenceMemSet } from '../lib/cache.js';
-import { estimateCostUSD, estimateTokens } from '../lib/cost.js';
+import type { SourceLang, TargetLang } from "../types.js";
+// .ts 后缀：tests/unit/punctuation.test.mjs（node 原生 TS 加载）要直接 import 本模块。
+import { sentenceCacheKey } from "../lib/hash.ts";
+import { sentenceMemGet, sentenceMemSet } from "../lib/cache.ts";
+import { estimateCostUSD, estimateTokens } from "../lib/cost.ts";
 
 export interface ProviderConfig {
   baseUrl: string;
@@ -22,7 +23,7 @@ export class ProviderError extends Error {
 }
 
 function cleanBase(url: string): string {
-  return url.trim().replace(/\/+$/, '');
+  return url.trim().replace(/\/+$/, "");
 }
 
 interface ChatResponse {
@@ -40,14 +41,14 @@ export async function glossSentence(
   target: TargetLang,
   sentence: string,
   lemmas: string[],
-  fetchFn: typeof fetch = fetch,
+  fetchFn: typeof fetch = fetch
 ): Promise<{ glosses: Record<string, string>; raw: string; costUSD: number }> {
-  if (!cfg.apiKey) throw new ProviderError('缺少 API Key（设置页填写，仅存 localStorage）');
-  const key = await sentenceCacheKey(lang, target, sentence + '‖' + lemmas.join(','));
+  if (!cfg.apiKey) throw new ProviderError("缺少 API Key（设置页填写，仅存 localStorage）");
+  const key = await sentenceCacheKey(lang, target, sentence + "‖" + lemmas.join(","));
   const mem = sentenceMemGet(key);
-  if (mem) return { glosses: mem, raw: '', costUSD: 0 };
+  if (mem) return { glosses: mem, raw: "", costUSD: 0 };
 
-  const targetName = target === 'zh' ? '简体中文' : 'simple English';
+  const targetName = target === "zh" ? "简体中文" : "simple English";
   const sys =
     `You are a dictionary for language learners. Source language: ${lang}. ` +
     `Gloss each requested lemma in ${targetName}, very short (1-4 words/字). ` +
@@ -58,16 +59,27 @@ export async function glossSentence(
   let resp: Response;
   try {
     resp = await fetchFn(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cfg.apiKey}` },
-      body: JSON.stringify({ model: cfg.model, messages: [{ role: 'system', content: sys }, { role: 'user', content: user }], temperature: 0 }),
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` },
+      body: JSON.stringify({
+        model: cfg.model,
+        messages: [
+          { role: "system", content: sys },
+          { role: "user", content: user },
+        ],
+        temperature: 0,
+      }),
     });
   } catch (e) {
     throw new ProviderError(`网络请求失败（浏览器直调）：${(e as Error).message}`);
   }
-  if (!resp.ok) throw new ProviderError(`LLM ${resp.status}：${(await resp.text()).slice(0, 300)}`, resp.status);
+  if (!resp.ok)
+    throw new ProviderError(
+      `LLM ${resp.status}：${(await resp.text()).slice(0, 300)}`,
+      resp.status
+    );
   const data = (await resp.json()) as ChatResponse;
-  const raw = data.choices?.[0]?.message?.content?.trim() ?? '';
+  const raw = data.choices?.[0]?.message?.content?.trim() ?? "";
   const glosses = parseGlossJson(raw);
   sentenceMemSet(key, glosses);
   const costUSD = estimateCostUSD(sys + user, raw);
@@ -120,13 +132,13 @@ export async function glossBatchPage(
   context: string,
   sentences: BatchSentence[],
   fetchFn: typeof fetch = fetch,
-  options: BatchOptions = {},
+  options: BatchOptions = {}
 ): Promise<{ glosses: Map<string, Record<string, string>>; raw: string; costUSD: number }> {
   const out = new Map<string, Record<string, string>>();
   const pending = [];
   for (const s of sentences) {
-    if (!cfg.apiKey) throw new ProviderError('缺少 API Key（设置页填写，仅存 localStorage）');
-    const key = await sentenceCacheKey(lang, target, s.text + '‖' + s.lemmas.join(','));
+    if (!cfg.apiKey) throw new ProviderError("缺少 API Key（设置页填写，仅存 localStorage）");
+    const key = await sentenceCacheKey(lang, target, s.text + "‖" + s.lemmas.join(","));
     const mem = sentenceMemGet(key);
     if (mem) {
       const picked: Record<string, string> = {};
@@ -136,9 +148,9 @@ export async function glossBatchPage(
       pending.push(s);
     }
   }
-  if (pending.length === 0) return { glosses: out, raw: '', costUSD: 0 };
+  if (pending.length === 0) return { glosses: out, raw: "", costUSD: 0 };
 
-  const targetName = target === 'zh' ? '简体中文' : 'simple English';
+  const targetName = target === "zh" ? "简体中文" : "simple English";
   const glossary = options.glossary ?? {};
   const glossaryTerms = Object.keys(glossary);
   const sys =
@@ -149,7 +161,7 @@ export async function glossBatchPage(
     (glossaryTerms.length
       ? `This book has an established glossary — use these fixed renderings whenever the term appears: ` +
         `${JSON.stringify(glossary)}. `
-      : '') +
+      : "") +
     `Use the requested lemma strings EXACTLY as given as the JSON keys — never correct, ` +
     `re-spell, normalize, or replace them. ` +
     `Return ONLY a JSON object mapping sentence id to {lemma: gloss}. No markdown, no extra text.`;
@@ -162,16 +174,27 @@ export async function glossBatchPage(
   let resp: Response;
   try {
     resp = await fetchFn(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cfg.apiKey}` },
-      body: JSON.stringify({ model: cfg.model, messages: [{ role: 'system', content: sys }, { role: 'user', content: user }], temperature: 0 }),
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` },
+      body: JSON.stringify({
+        model: cfg.model,
+        messages: [
+          { role: "system", content: sys },
+          { role: "user", content: user },
+        ],
+        temperature: 0,
+      }),
     });
   } catch (e) {
     throw new ProviderError(`网络请求失败（浏览器直调）：${(e as Error).message}`);
   }
-  if (!resp.ok) throw new ProviderError(`LLM ${resp.status}：${(await resp.text()).slice(0, 300)}`, resp.status);
+  if (!resp.ok)
+    throw new ProviderError(
+      `LLM ${resp.status}：${(await resp.text()).slice(0, 300)}`,
+      resp.status
+    );
   const data = (await resp.json()) as ChatResponse;
-  const raw = data.choices?.[0]?.message?.content?.trim() ?? '';
+  const raw = data.choices?.[0]?.message?.content?.trim() ?? "";
   const parsed = parseBatchJson(raw);
   for (const s of pending) {
     // 键对齐：模型偶尔把 lemma 回写成自然拼写（如请求 borborygmu 却回 borborygmus，
@@ -180,7 +203,7 @@ export async function glossBatchPage(
     const got = alignGlossKeys(parsed.get(s.id) ?? {}, s.lemmas);
     out.set(s.id, got);
     if (Object.keys(got).length) {
-      const key = await sentenceCacheKey(lang, target, s.text + '‖' + s.lemmas.join(','));
+      const key = await sentenceCacheKey(lang, target, s.text + "‖" + s.lemmas.join(","));
       sentenceMemSet(key, got);
     }
   }
@@ -190,7 +213,10 @@ export async function glossBatchPage(
 
 /** 把模型返回的释义键对回请求的 lemma 词表（精确 > 忽略大小写 > 前缀互为包含）。
  * 命中的原键同时保留，正文侧 lemma/surface 两种取值都能命中。 */
-export function alignGlossKeys(input: Record<string, string>, lemmas: string[]): Record<string, string> {
+export function alignGlossKeys(
+  input: Record<string, string>,
+  lemmas: string[]
+): Record<string, string> {
   const out: Record<string, string> = {};
   const lc = new Map<string, string>();
   for (const l of lemmas) if (l) lc.set(l.toLowerCase(), l);
@@ -215,16 +241,17 @@ export function alignGlossKeys(input: Record<string, string>, lemmas: string[]):
 }
 
 function parseBatchJson(raw: string): Map<string, Record<string, string>> {
-  const cleaned = raw.replace(/^```json\s*|^```\s*|```$/gm, '').trim();
-  const start = cleaned.indexOf('{');
-  const end = cleaned.lastIndexOf('}');
+  const cleaned = raw.replace(/^```json\s*|^```\s*|```$/gm, "").trim();
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
   if (start < 0 || end <= start) throw new ProviderError(`LLM 返回非 JSON：${raw.slice(0, 200)}`);
   const obj = JSON.parse(cleaned.slice(start, end + 1)) as Record<string, unknown>;
   const out = new Map<string, Record<string, string>>();
   for (const [id, v] of Object.entries(obj)) {
-    if (v === null || typeof v !== 'object' || Array.isArray(v)) continue;
+    if (v === null || typeof v !== "object" || Array.isArray(v)) continue;
     const m: Record<string, string> = {};
-    for (const [k, g] of Object.entries(v as Record<string, unknown>)) m[k] = String(g).slice(0, 60);
+    for (const [k, g] of Object.entries(v as Record<string, unknown>))
+      m[k] = String(g).slice(0, 60);
     out.set(id, m);
   }
   return out;
@@ -237,16 +264,60 @@ export async function glossWord(
   target: TargetLang,
   sentence: string,
   lemma: string,
-  fetchFn: typeof fetch = fetch,
+  fetchFn: typeof fetch = fetch
 ) {
   return glossSentence(cfg, lang, target, sentence, [lemma], fetchFn);
 }
 
-/** Auto 万能分词+注 token（不经词典/分词包，源语言由 LLM 自动识别）。 */
+/** Auto 万能分词+注 token（不经词典/分词包，源语言由 LLM 自动识别）。
+ * isWord 由 alignAutoTokens 对齐回插时填充：true=词（带释义），false=原文缺口
+ * （空白/标点整段，仅用于按原样渲染）。LLM 直出的 token 无此字段（全是词）。 */
 export interface AutoGlossToken {
   surface: string;
   lemma: string;
   gloss: string;
+  isWord?: boolean;
+}
+
+/**
+ * 把 LLM 词 token 对齐回原句：词与词之间被跳过的空白/标点整段补成非词 token，
+ * 输出连缀 == 原句。LLM prompt 要求“标点不进 token”，直接渲染会字连着字、
+ * 逗号句号全丢；此处按原文顺序消费每个词 surface（大小写不敏感兜底一次），
+ * 缺口整段补回；surface 对不上原句的 token 直接丢弃——宁可少一个释义，
+ * 也不把模型改写/幻觉出的词塞进原文破坏正文。
+ */
+export function alignAutoTokens(sentence: string, words: AutoGlossToken[]): AutoGlossToken[] {
+  const out: AutoGlossToken[] = [];
+  let pos = 0;
+  // 仅当 toLowerCase 不改变长度时启用大小写不敏感兜底（长度变化的特例宁可错过）
+  const lower = sentence.toLowerCase();
+  const ciOk = lower.length === sentence.length;
+  for (const w of words) {
+    if (!w.surface) continue;
+    let idx = sentence.indexOf(w.surface, pos);
+    if (idx < 0 && ciOk) {
+      const at = lower.indexOf(w.surface.toLowerCase(), pos);
+      if (at >= 0) idx = at;
+    }
+    if (idx < 0) continue;
+    if (idx > pos) {
+      out.push({ surface: sentence.slice(pos, idx), lemma: "", gloss: "", isWord: false });
+    }
+    // 词 token 一律用原文切片（不是模型回写的 surface）：模型可能改大小写/拼写，
+    // 渲染必须保持原文；模型形只作为 lemma 供点词/生词本使用。
+    const len = Math.max(1, w.surface.length);
+    out.push({
+      surface: sentence.slice(idx, idx + len),
+      lemma: w.lemma || w.surface,
+      gloss: w.gloss,
+      isWord: true,
+    });
+    pos = idx + len;
+  }
+  if (pos < sentence.length) {
+    out.push({ surface: sentence.slice(pos), lemma: "", gloss: "", isWord: false });
+  }
+  return out;
 }
 
 /**
@@ -259,19 +330,20 @@ export async function autoSegmentGloss(
   cfg: ProviderConfig,
   target: TargetLang,
   sentence: string,
-  fetchFn: typeof fetch = fetch,
+  fetchFn: typeof fetch = fetch
 ): Promise<{ tokens: AutoGlossToken[]; detectedLang: string; raw: string; costUSD: number }> {
-  if (!cfg.apiKey) throw new ProviderError('缺少 API Key（设置页填写，仅存 localStorage）');
-  if (!sentence.trim()) return { tokens: [], detectedLang: '', raw: '', costUSD: 0 };
+  if (!cfg.apiKey) throw new ProviderError("缺少 API Key（设置页填写，仅存 localStorage）");
+  if (!sentence.trim()) return { tokens: [], detectedLang: "", raw: "", costUSD: 0 };
   // sha1(auto|target||归一化句)：与 glossSentence 同函数、lang 固定 'auto'（见 lib/hash.ts）。
-  const key = await sentenceCacheKey('auto', target, sentence);
+  const key = await sentenceCacheKey("auto", target, sentence);
   const mem = sentenceMemGet(key);
   if (mem) {
     const cached = parseAutoMem(mem);
-    if (cached) return { tokens: cached.tokens, detectedLang: cached.detectedLang, raw: '', costUSD: 0 };
+    if (cached)
+      return { tokens: cached.tokens, detectedLang: cached.detectedLang, raw: "", costUSD: 0 };
   }
 
-  const targetName = target === 'zh' ? '简体中文' : 'simple English';
+  const targetName = target === "zh" ? "简体中文" : "simple English";
   const sys =
     `You are an interlinear gloss engine for ANY language (universal mode). ` +
     `Auto-detect the source language of each sentence (do NOT ask the user). ` +
@@ -281,55 +353,77 @@ export async function autoSegmentGloss(
     `{"sentences":[{"id":"s1","detectedLang":"<bcp47>","tokens":[{"i":0,"surface":"<word>","lemma":"<word>","gloss":"<gloss>"}]}]} ` +
     `No markdown fences, no commentary.`;
   const user = JSON.stringify({
-    lang: 'auto',
+    lang: "auto",
     target,
     instruction: `Auto-detect source language. Segment every sentence into words and gloss each token into ${target}.`,
-    sentences: [{ id: 's1', text: sentence }],
+    sentences: [{ id: "s1", text: sentence }],
   });
 
   const url = `${cleanBase(cfg.baseUrl)}/chat/completions`;
   let resp: Response;
   try {
     resp = await fetchFn(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cfg.apiKey}` },
-      body: JSON.stringify({ model: cfg.model, messages: [{ role: 'system', content: sys }, { role: 'user', content: user }], temperature: 0 }),
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` },
+      body: JSON.stringify({
+        model: cfg.model,
+        messages: [
+          { role: "system", content: sys },
+          { role: "user", content: user },
+        ],
+        temperature: 0,
+      }),
     });
   } catch (e) {
     throw new ProviderError(`网络请求失败（浏览器直调）：${(e as Error).message}`);
   }
-  if (!resp.ok) throw new ProviderError(`LLM ${resp.status}：${(await resp.text()).slice(0, 300)}`, resp.status);
+  if (!resp.ok)
+    throw new ProviderError(
+      `LLM ${resp.status}：${(await resp.text()).slice(0, 300)}`,
+      resp.status
+    );
   const data = (await resp.json()) as ChatResponse;
-  const raw = data.choices?.[0]?.message?.content?.trim() ?? '';
-  const { tokens, detectedLang } = parseAutoGlossJson(raw);
+  const raw = data.choices?.[0]?.message?.content?.trim() ?? "";
+  const { tokens: parsed, detectedLang } = parseAutoGlossJson(raw);
+  // 对齐回插标点/空白（连缀==原句），并以其结果写句级缓存——缓存命中与首调同形，
+  // 所有调用方（阅读/导出）拿到的都是带标点缺口的 token，渲染不再丢逗号句号。
+  const tokens = alignAutoTokens(sentence, parsed);
   // 句级记忆：gloss map 存 surface->gloss + 保留 tokens/detectedLang（JSON 包一层，前缀 AUTO1|）。
   const memOut: Record<string, string> = { __auto__: JSON.stringify({ tokens, detectedLang }) };
-  for (const t of tokens) memOut[t.surface] = t.gloss;
+  for (const t of tokens) if (t.isWord) memOut[t.surface] = t.gloss;
   sentenceMemSet(key, memOut);
   const costUSD = estimateCostUSD(sys + user, raw);
   return { tokens, detectedLang, raw, costUSD };
 }
 
-function parseAutoMem(mem: Record<string, string>): { tokens: AutoGlossToken[]; detectedLang: string } | null {
+function parseAutoMem(
+  mem: Record<string, string>
+): { tokens: AutoGlossToken[]; detectedLang: string } | null {
   try {
-    const raw = mem['__auto__'];
+    const raw = mem["__auto__"];
     if (!raw) return null;
     const o = JSON.parse(raw) as { tokens?: AutoGlossToken[]; detectedLang?: string };
     if (!Array.isArray(o.tokens)) return null;
-    return { tokens: o.tokens, detectedLang: o.detectedLang ?? '' };
+    return { tokens: o.tokens, detectedLang: o.detectedLang ?? "" };
   } catch {
     return null;
   }
 }
 
 /** 解析 Auto LLM 返回：兼容 sentences/results/数组/Record + tokens/glosses 别名 + fence/散文。 */
-export function parseAutoGlossJson(raw: string): { tokens: AutoGlossToken[]; detectedLang: string } {
+export function parseAutoGlossJson(raw: string): {
+  tokens: AutoGlossToken[];
+  detectedLang: string;
+} {
   const data = extractAutoJson(raw);
   if (data === undefined) throw new ProviderError(`LLM 返回非 JSON：${raw.slice(0, 200)}`);
   const entries = autoSentenceEntries(data);
   // 本 web 客户端每次只送单句 s1；取首个命中句的 tokens。
-  const first = entries.find((e) => Array.isArray(e.tokens) && (e.tokens as unknown[]).length > 0) ?? entries[0];
-  if (!first || !Array.isArray(first.tokens)) throw new ProviderError(`LLM 返回非 JSON：${raw.slice(0, 200)}`);
+  const first =
+    entries.find((e) => Array.isArray(e.tokens) && (e.tokens as unknown[]).length > 0) ??
+    entries[0];
+  if (!first || !Array.isArray(first.tokens))
+    throw new ProviderError(`LLM 返回非 JSON：${raw.slice(0, 200)}`);
   const tokens: Array<AutoGlossToken & { i: number }> = [];
   const seen = new Set<number>();
   (first.tokens as unknown[]).forEach((t, idx) => {
@@ -342,25 +436,28 @@ export function parseAutoGlossJson(raw: string): { tokens: AutoGlossToken[]; det
   tokens.sort((a, b) => a.i - b.i);
   // 去掉排序用的 i（不外泄）
   const cleaned = tokens.map((t) => ({ surface: t.surface, lemma: t.lemma, gloss: t.gloss }));
-  const detectedLang = typeof first.detectedLang === 'string' ? first.detectedLang : '';
+  const detectedLang = typeof first.detectedLang === "string" ? first.detectedLang : "";
   return { tokens: cleaned, detectedLang };
 }
 
-function coerceAutoToken(raw: unknown, fallbackIndex: number): { i: number; surface: string; lemma: string; gloss: string } | null {
-  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) return null;
+function coerceAutoToken(
+  raw: unknown,
+  fallbackIndex: number
+): { i: number; surface: string; lemma: string; gloss: string } | null {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
   const r = raw as Record<string, unknown>;
-  const i = typeof r['i'] === 'number' ? (r['i'] as number) : fallbackIndex;
+  const i = typeof r["i"] === "number" ? (r["i"] as number) : fallbackIndex;
   const surface =
-    typeof r['surface'] === 'string' && (r['surface'] as string).trim() !== ''
-      ? (r['surface'] as string)
-      : typeof r['lemma'] === 'string'
-        ? (r['lemma'] as string)
-        : '';
+    typeof r["surface"] === "string" && (r["surface"] as string).trim() !== ""
+      ? (r["surface"] as string)
+      : typeof r["lemma"] === "string"
+        ? (r["lemma"] as string)
+        : "";
   const lemma =
-    typeof r['lemma'] === 'string' && (r['lemma'] as string).trim() !== ''
-      ? (r['lemma'] as string)
+    typeof r["lemma"] === "string" && (r["lemma"] as string).trim() !== ""
+      ? (r["lemma"] as string)
       : surface;
-  const gloss = typeof r['gloss'] === 'string' ? (r['gloss'] as string).trim() : '';
+  const gloss = typeof r["gloss"] === "string" ? (r["gloss"] as string).trim() : "";
   if (!Number.isInteger(i) || i < 0 || !surface || !gloss) return null;
   return { i, surface, lemma, gloss };
 }
@@ -368,21 +465,35 @@ function coerceAutoToken(raw: unknown, fallbackIndex: number): { i: number; surf
 function autoSentenceEntries(data: unknown): Array<{ tokens: unknown; detectedLang?: unknown }> {
   if (Array.isArray(data)) {
     return data
-      .filter((s) => s !== null && typeof s === 'object' && typeof (s as Record<string, unknown>)['id'] === 'string')
+      .filter(
+        (s) =>
+          s !== null &&
+          typeof s === "object" &&
+          typeof (s as Record<string, unknown>)["id"] === "string"
+      )
       .map((s) => {
         const r = s as Record<string, unknown>;
-        return { tokens: r['tokens'] ?? r['glosses'] ?? [], detectedLang: r['detectedLang'] };
+        return { tokens: r["tokens"] ?? r["glosses"] ?? [], detectedLang: r["detectedLang"] };
       });
   }
-  if (data === null || typeof data !== 'object' || Array.isArray(data)) return [];
+  if (data === null || typeof data !== "object" || Array.isArray(data)) return [];
   const r = data as Record<string, unknown>;
-  const list = Array.isArray(r['sentences']) ? (r['sentences'] as unknown[]) : Array.isArray(r['results']) ? (r['results'] as unknown[]) : null;
+  const list = Array.isArray(r["sentences"])
+    ? (r["sentences"] as unknown[])
+    : Array.isArray(r["results"])
+      ? (r["results"] as unknown[])
+      : null;
   if (list) {
     return list
-      .filter((s) => s !== null && typeof s === 'object' && typeof (s as Record<string, unknown>)['id'] === 'string')
+      .filter(
+        (s) =>
+          s !== null &&
+          typeof s === "object" &&
+          typeof (s as Record<string, unknown>)["id"] === "string"
+      )
       .map((s) => {
         const sr = s as Record<string, unknown>;
-        return { tokens: sr['tokens'] ?? sr['glosses'] ?? [], detectedLang: sr['detectedLang'] };
+        return { tokens: sr["tokens"] ?? sr["glosses"] ?? [], detectedLang: sr["detectedLang"] };
       });
   }
   const out: Array<{ tokens: unknown }> = [];
@@ -398,8 +509,8 @@ function extractAutoJson(content: string): unknown {
     const p = tryJson(fence[1].trim());
     if (p !== undefined) return p;
   }
-  for (const open of ['{', '[']) {
-    const close = open === '{' ? '}' : ']';
+  for (const open of ["{", "["]) {
+    const close = open === "{" ? "}" : "]";
     let start = content.indexOf(open);
     while (start >= 0) {
       let depth = 0;
@@ -409,7 +520,7 @@ function extractAutoJson(content: string): unknown {
         const ch = content[k];
         if (inStr) {
           if (esc) esc = false;
-          else if (ch === '\\') esc = true;
+          else if (ch === "\\") esc = true;
           else if (ch === '"') inStr = false;
         } else if (ch === '"') inStr = true;
         else if (ch === open) depth++;
@@ -437,19 +548,26 @@ function tryJson(s: string): unknown {
 }
 
 /** 连接测试：GET {baseUrl}/models */
-export async function testConnection(cfg: ProviderConfig, fetchFn: typeof fetch = fetch): Promise<string> {
-  if (!cfg.apiKey) throw new ProviderError('缺少 API Key');
+export async function testConnection(
+  cfg: ProviderConfig,
+  fetchFn: typeof fetch = fetch
+): Promise<string> {
+  if (!cfg.apiKey) throw new ProviderError("缺少 API Key");
   const resp = await fetchFn(`${cleanBase(cfg.baseUrl)}/models`, {
     headers: { Authorization: `Bearer ${cfg.apiKey}` },
   });
-  if (!resp.ok) throw new ProviderError(`连接失败 ${resp.status}：${(await resp.text()).slice(0, 200)}`, resp.status);
-  return '连接成功';
+  if (!resp.ok)
+    throw new ProviderError(
+      `连接失败 ${resp.status}：${(await resp.text()).slice(0, 200)}`,
+      resp.status
+    );
+  return "连接成功";
 }
 
 function parseGlossJson(raw: string): Record<string, string> {
-  const cleaned = raw.replace(/^```json\s*|^```\s*|```$/gm, '').trim();
-  const start = cleaned.indexOf('{');
-  const end = cleaned.lastIndexOf('}');
+  const cleaned = raw.replace(/^```json\s*|^```\s*|```$/gm, "").trim();
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
   if (start < 0 || end <= start) throw new ProviderError(`LLM 返回非 JSON：${raw.slice(0, 200)}`);
   const obj = JSON.parse(cleaned.slice(start, end + 1)) as Record<string, unknown>;
   const out: Record<string, string> = {};
@@ -468,7 +586,7 @@ const GLOSSARY_RESERVE_TOKENS = 4096;
  * 拿不到返回 null（调用方用 DEFAULT_CONTEXT_TOKENS）。 */
 export async function fetchModelContext(
   cfg: ProviderConfig,
-  fetchFn: typeof fetch = fetch,
+  fetchFn: typeof fetch = fetch
 ): Promise<number | null> {
   try {
     const resp = await fetchFn(`${cleanBase(cfg.baseUrl)}/models`, {
@@ -479,16 +597,16 @@ export async function fetchModelContext(
     const list = (data as { data?: unknown }).data;
     if (!Array.isArray(list)) return null;
     const entries = list.filter(
-      (m): m is { id?: unknown; context_length?: unknown } => m !== null && typeof m === 'object',
+      (m): m is { id?: unknown; context_length?: unknown } => m !== null && typeof m === "object"
     );
     const pick = (m: { id?: unknown; context_length?: unknown }): number | null =>
-      typeof m.context_length === 'number' && m.context_length > 0 ? m.context_length : null;
+      typeof m.context_length === "number" && m.context_length > 0 ? m.context_length : null;
     const exact = entries.find((m) => m.id === cfg.model);
     if (exact) {
       const c = pick(exact);
       if (c) return c;
     }
-    const prefixed = entries.find((m) => typeof m.id === 'string' && m.id.startsWith(cfg.model));
+    const prefixed = entries.find((m) => typeof m.id === "string" && m.id.startsWith(cfg.model));
     if (prefixed) {
       const c = pick(prefixed);
       if (c) return c;
@@ -501,10 +619,7 @@ export async function fetchModelContext(
 
 /** 按 token 预算切块：尽量填满（用户口径“能填 200K 就填到 200K”）。
  * 段落粒度优先（不切断句内上下文）；单段超预算时按字符硬切。 */
-export function chunkByTokenBudget(
-  paragraphs: string[],
-  budgetTokens: number,
-): string[][] {
+export function chunkByTokenBudget(paragraphs: string[], budgetTokens: number): string[][] {
   const out: string[][] = [];
   let cur: string[] = [];
   let n = 0;
@@ -522,7 +637,7 @@ export function chunkByTokenBudget(
     if (t > budgetTokens) {
       pushCur();
       // 单段超预算：按字符数近似切（保留段落边界语义，仅对超长段硬切）
-      const perChar = estimateTokens('x'.repeat(100)) / 100;
+      const perChar = estimateTokens("x".repeat(100)) / 100;
       const maxChars = Math.max(200, Math.floor(budgetTokens / Math.max(perChar, 0.01)));
       for (let i = 0; i < text.length; i += maxChars) out.push([text.slice(i, i + maxChars)]);
       continue;
@@ -584,14 +699,18 @@ export async function extractBookGlossary(
     onProgress?: (done: number, total: number) => void;
     fetchFn?: typeof fetch;
     signal?: AbortSignal;
-  } = {},
+  } = {}
 ): Promise<BookGlossaryResult> {
-  if (!cfg.apiKey) throw new ProviderError('缺少 API Key（设置页填写，仅存 localStorage）');
+  if (!cfg.apiKey) throw new ProviderError("缺少 API Key（设置页填写，仅存 localStorage）");
   const fetchFn = opts.fetchFn ?? fetch;
-  const contextTokens = opts.maxContextTokens ?? (await fetchModelContext(cfg, fetchFn)) ?? DEFAULT_CONTEXT_TOKENS;
-  const budgetTokens = Math.max(1024, contextTokens - (opts.reserveTokens ?? GLOSSARY_RESERVE_TOKENS));
+  const contextTokens =
+    opts.maxContextTokens ?? (await fetchModelContext(cfg, fetchFn)) ?? DEFAULT_CONTEXT_TOKENS;
+  const budgetTokens = Math.max(
+    1024,
+    contextTokens - (opts.reserveTokens ?? GLOSSARY_RESERVE_TOKENS)
+  );
   const chunks = sampleChunks(chunkByTokenBudget(paragraphs, budgetTokens), GLOSSARY_MAX_CHUNKS);
-  const targetName = target === 'zh' ? '简体中文' : 'simple English';
+  const targetName = target === "zh" ? "简体中文" : "simple English";
   const sys =
     `You are a terminology extractor for a ${lang} book being read with interlinear glosses. ` +
     `Extract the book's glossary: proper nouns (people, places, gods, artefacts), archaic or unusual words, ` +
@@ -605,23 +724,27 @@ export async function extractBookGlossary(
   let done = 0;
   let next = 0;
   const runChunk = async (chunk: string[]): Promise<Record<string, string>> => {
-    const user = JSON.stringify({ book: chunk.join('\n\n') });
+    const user = JSON.stringify({ book: chunk.join("\n\n") });
     const resp = await fetchFn(`${cleanBase(cfg.baseUrl)}/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${cfg.apiKey}` },
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${cfg.apiKey}` },
       body: JSON.stringify({
         model: cfg.model,
         messages: [
-          { role: 'system', content: sys },
-          { role: 'user', content: user },
+          { role: "system", content: sys },
+          { role: "user", content: user },
         ],
         temperature: 0,
       }),
       signal: opts.signal,
     });
-    if (!resp.ok) throw new ProviderError(`LLM ${resp.status}：${(await resp.text()).slice(0, 200)}`, resp.status);
+    if (!resp.ok)
+      throw new ProviderError(
+        `LLM ${resp.status}：${(await resp.text()).slice(0, 200)}`,
+        resp.status
+      );
     const data = (await resp.json()) as ChatResponse;
-    const raw = data.choices?.[0]?.message?.content?.trim() ?? '';
+    const raw = data.choices?.[0]?.message?.content?.trim() ?? "";
     costUSD += estimateCostUSD(sys + user, raw);
     return parseGlossJson(raw);
   };
@@ -641,7 +764,9 @@ export async function extractBookGlossary(
     }
   };
   await Promise.all(
-    Array.from({ length: Math.max(1, Math.min(GLOSSARY_CONCURRENCY, chunks.length)) }, () => worker()),
+    Array.from({ length: Math.max(1, Math.min(GLOSSARY_CONCURRENCY, chunks.length)) }, () =>
+      worker()
+    )
   );
   // 合并按块序（不是完成序）：靠前的块更可能来自书名/开篇的规范表述，先到先得。
   for (const part of perChunk) {

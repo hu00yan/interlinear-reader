@@ -21,6 +21,7 @@
     "deploy:dict:live": "node scripts/deploy-dict.mjs --live",
     "dev:stub": "node scripts/stub-server.mjs",
     "selfcheck": "node scripts/selfcheck-local.mjs",
+    "check:deploy": "node scripts/deploy-freshness.mjs",
     "bench:browser": "node scripts/bench-reader-browser.mjs",
     "bench:browser:dev": "node scripts/bench-reader-browser.mjs --base=http://127.0.0.1:5173",
     "e2e": "playwright test",
@@ -36,8 +37,10 @@
   "devDependencies": {
     "@playwright/test": "^1.49.1",
     "husky": "^9.1.7",
+    "jsdom": "^30.0.1",
     "lint-staged": "^15.5.2",
-    "prettier": "^3.9.7"
+    "prettier": "^3.9.7",
+    "typescript": "^5.5.0"
   },
   "engines": {
     "node": ">=18"

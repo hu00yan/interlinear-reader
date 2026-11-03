@@ -15,8 +15,8 @@ Scope: deploy ONLY. Web UI (A), dict content (B), provider prompts (C) are other
      any pair >20MB because Pages refuses files >25MB — e.g. `en/en.dict`),
   3. R2 public origin `https://pub-3d23245bf2874c8cbdf740c1d2761ada.r2.dev/dict/{lang}/{target}.dict.br`
      (override via `VITE_R2_PUBLIC`; browser-transparent brotli).
-  No Worker, no KV, no DO, no secrets. BYOK keys NEVER leave the browser
-  (browser-direct to provider `baseUrl`; e2e-sniffed + provider security tests).
+     No Worker, no KV, no DO, no secrets. BYOK keys NEVER leave the browser
+     (browser-direct to provider `baseUrl`; e2e-sniffed + provider security tests).
 - **R2**: bucket `ilr-dict-v2` = canonical store of whole-pair `.br`
   (`dict/{lang}/{target}.dict.br`, 14 objects) + rollback source.
   Public r2.dev enabled (reads need no Worker); CORS for pages origin
@@ -65,16 +65,33 @@ dict-loader tests (B) → build-check → budget → deploy:dict dry-run →
 dict-proof (real R2-layout loader over HTTP, 7×2 zh/en + miss) →
 Playwright e2e (real app: 7-lang upload, dict hit, EPUB chapters, A/B/C,
 B zero-LLM, C mock-LLM backfill, persistence, key hygiene, screenshots) →
-static-dict selfcheck.
+static-dict selfcheck → **deploy freshness**.
+
+### Deploy freshness (2026-11 incident)
+
+The 2026-11-03 "uploaded EPUB renders without punctuation" report was NOT a
+source bug (fixed in 0bb0813) — the live Pages deployment had gone stale and
+nobody noticed, because every check tested source and none compared prod.
+`npm run check:deploy` (also verify step 12, `scripts/deploy-freshness.mjs`)
+fetches prod `index.html` and compares its entry bundle hash against the
+local `packages/web/dist` built from the current tree. Run it right after
+`npm run build` (verify.mjs builds first). Mismatch = deployment is behind
+or ahead of the tree: check the Pages git integration is still building
+main, or deploy manually (`wrangler pages deploy packages/web/dist`).
+A commit-fingerprint (`__ILR_BUILD__`, git short hash) is baked into each
+build and shown at the bottom of 设置 → 关于, so a stale deploy is visible
+in the UI too. On a brand-new commit the probe can false-FAIL once: the
+local dist was built pre-commit while Pages builds the pushed commit;
+rebuild (`npm run build`) and re-run.
 
 ## 4. Free-tier accounting
 
-| Resource | Free quota | Our ceiling | Enforced by |
-|---|---|---|---|
-| R2 storage | 10 GB | 17.3 MB dict (50 MB budget gate) | `scripts/budget.mjs` |
-| R2 ops | generous free | dict immutable-ish; reads cached per pair in memory | `loadPair` mem |
-| Pages | unlimited req, 25 MB/file | static only; pairs >20 MB split to chunks | `split-dict.mjs` |
-| Workers | — | NOT USED (removed 2026-09-14; was shared cache + selfcheck) | — |
+| Resource   | Free quota                | Our ceiling                                                 | Enforced by          |
+| ---------- | ------------------------- | ----------------------------------------------------------- | -------------------- |
+| R2 storage | 10 GB                     | 17.3 MB dict (50 MB budget gate)                            | `scripts/budget.mjs` |
+| R2 ops     | generous free             | dict immutable-ish; reads cached per pair in memory         | `loadPair` mem       |
+| Pages      | unlimited req, 25 MB/file | static only; pairs >20 MB split to chunks                   | `split-dict.mjs`     |
+| Workers    | —                         | NOT USED (removed 2026-09-14; was shared cache + selfcheck) | —                    |
 
 LLM spend in harness/CI: **$0** — e2e + all tests use the harness `/mock-llm`
 endpoint and Track C's mock server only. Real provider calls are browser-direct

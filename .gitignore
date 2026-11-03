@@ -12,3 +12,6 @@ playwright-report/
 **/license-key*
 **/license-private-key*
 **/.config/interlinear-reader/
+
+# MCP/security-scan tool state (never ship)
+.mimosa/

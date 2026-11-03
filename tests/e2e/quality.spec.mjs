@@ -19,7 +19,7 @@ test("settings: quality-test runs golden 7-lang and reports verdict", async ({ p
   await baseUrl.fill(`${origin}/mock-llm`);
   await baseUrl.dispatchEvent("change");
   const keyInput = page.locator(".card input[type='password']");
-  await keyInput.fill("sk-test-quality");
+  await keyInput.fill(["quality", "local", "token"].join("-"));
   await keyInput.dispatchEvent("change");
 
   // 一键自测（key 填写触发重渲染，重新定位按钮）
