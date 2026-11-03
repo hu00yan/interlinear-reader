@@ -431,6 +431,38 @@ async function decodeTextFile(f: File): Promise<string> {
 }
 
 function renderLibrary(main: HTMLElement, sync: () => void): void {
+  // 首屏 Hero：把“这是什么/为什么值得用/多快见效”放在导入表单前面。
+  // 新访客看到的第一屏不再是冷的文件表单（2026-11 产品复盘：转化始于价值主张）。
+  const hero = document.createElement("div");
+  hero.className = "card hero-card";
+  hero.setAttribute("data-testid", "library-hero");
+  const heroTitle = document.createElement("h2");
+  heroTitle.className = "hero-title";
+  heroTitle.textContent = "读原版书，逐词看懂";
+  const heroSub = document.createElement("p");
+  heroSub.className = "hero-sub";
+  heroSub.textContent =
+    "把 EPUB / MOBI / TXT 拖进来，每个单词下面出现一行小释义——不用停下来查词典，读完整本书的速度和不查词典一样。";
+  const steps = document.createElement("ol");
+  steps.className = "hero-steps";
+  for (const [t, d] of [
+    ["选语言，上传书", "EPUB / MOBI / TXT / 网页链接，7 种语言 + 万能 Auto"],
+    ["边读边点词", "词典释义直接标在词下；缺词或要语境义，点一下让 AI 补"],
+    ["生词自动积累", "点过的词一键进生词本，导出复习"],
+  ] as const) {
+    const li = document.createElement("li");
+    const b = document.createElement("strong");
+    b.textContent = t;
+    li.append(b, document.createTextNode(` — ${d}`));
+    steps.appendChild(li);
+  }
+  const heroNote = document.createElement("p");
+  heroNote.className = "muted";
+  heroNote.textContent =
+    "词典注释免费用、不限量、不用注册。AI 释义默认用你自己的 API key（只存本机浏览器，直接调用模型商，书文不会经过本站服务器）。";
+  hero.append(heroTitle, heroSub, steps, heroNote);
+  main.appendChild(hero);
+
   const card = document.createElement("div");
   card.className = "card";
   card.innerHTML = `<h2 class="card-title">导入内容</h2><div class="muted">EPUB / MOBI / AZW3（未加密，保留章节段落）/ TXT / URL 正文提取。语言：7 源语言 + Auto 万能（LLM 自动识别，无包语言用 Auto），导入时选择。</div>`;
@@ -2898,6 +2930,16 @@ function renderVocab(main: HTMLElement, sync: () => void): void {
   void isVocabExportUnlocked().then(updateLock);
   const panel = document.createElement("form");
   panel.hidden = true;
+  panel.setAttribute("data-testid", "tsv-license-panel");
+  // 付费点上下文：买什么/怎么买/免费边界，写清楚再让人掏钱。没有这一段，
+  // 面板只是一个冷输入框（2026-11 复盘：上线以来 TSV License 零成交的主要 UX 原因）。
+  const pitch = document.createElement("div");
+  pitch.className = "muted";
+  pitch.innerHTML =
+    `<strong>解锁后你会得到</strong>：把生词本导出成制表符分隔的 TSV 文件，` +
+    `Anki 里选「导入文件 → 制表符分隔」即可建卡，每张卡带单词、释义和原句。<br>` +
+    `<span>永久解锁本站点的全部导出功能，一次购买。JSON 导出始终免费。</span><br>` +
+    `<span>如何获得：访问 <a href="https://github.com/hu00yan/interlinear-reader" target="_blank" rel="noopener noreferrer">项目主页</a> 按说明购买获取 License，粘贴到下方校验即可（离线验签，仅存本浏览器）。</span>`;
   const label = document.createElement("label");
   label.className = "field";
   const caption = document.createElement("span");
@@ -2915,7 +2957,7 @@ function renderVocab(main: HTMLElement, sync: () => void): void {
   message.className = "muted";
   message.setAttribute("role", "status");
   message.setAttribute("aria-live", "polite");
-  panel.append(label, validate, message);
+  panel.append(pitch, label, validate, message);
   panel.addEventListener("submit", async (event) => {
     event.preventDefault();
     validate.disabled = true;

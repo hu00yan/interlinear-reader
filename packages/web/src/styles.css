@@ -574,6 +574,34 @@ button:disabled {
   background: var(--surface);
   box-shadow: var(--shadow-1);
 }
+/* 书架首屏 Hero：价值主张 + 三步用法 + 隐私口径（转化始于第一屏） */
+.hero-card {
+  padding: 22px 20px 18px;
+}
+.hero-title {
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: 0.2px;
+  margin: 0 0 8px;
+}
+.hero-sub {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--ink);
+  margin: 0 0 12px;
+}
+.hero-steps {
+  margin: 0 0 12px;
+  padding-left: 1.4em;
+  display: grid;
+  gap: 6px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.hero-steps li::marker {
+  color: var(--accent);
+  font-weight: 700;
+}
 .card > b:first-child,
 .card-title {
   display: block;

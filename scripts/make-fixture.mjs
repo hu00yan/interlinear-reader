@@ -143,4 +143,19 @@ const imgFiles = {
   "OEBPS/pic.png": PNG_1PX,
 };
 writeFileSync(`${root}/tests/fixtures/sample-image.epub`, zipStore(imgFiles));
-console.log("fixtures: 7 txt + sample-7lang.epub + sample-image.epub");
+
+// Boot demo book (packages/web/public/fixtures/hello-en.epub) — the FIRST book a new
+// visitor sees. 2026-11 产品复盘：玩具句（Hello world.）撑不起第一印象；换成一篇
+// 有情节的小故事，且每个词都过 en→zh 词典（用真实链路验证过：segment+lemmatize 全命中），
+// 不填 key 也能看到完整的逐词注释效果。结构契约：2 章 / ch1 3 段 / 标题 Hello Reader
+// （verify-track-a 断言依赖，改动需同步）。
+const demo = {
+  mimetype: "application/epub+zip",
+  "META-INF/container.xml": files["META-INF/container.xml"],
+  "OEBPS/content.opf": `<?xml version="1.0"?><package version="3.0" xmlns="http://www.idpf.org/2007/opf" unique-identifier="id"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>Hello Reader</dc:title><dc:language>en</dc:language><dc:identifier id="id">hello-en-fixture</dc:identifier></metadata><manifest><item id="ch1" href="ch1.xhtml" media-type="application/xhtml+xml"/><item id="ch2" href="ch2.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="ch1"/><itemref idref="ch2"/></spine></package>`,
+  "OEBPS/ch1.xhtml": `<?xml version="1.0" encoding="utf-8"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>The Cat in the Garden</title></head><body><h1>The Cat in the Garden</h1><p>The black cat sleeps in the garden. A small bird sings in the big tree, and the sun shines over the old house.</p><p>The cat opens one eye and watches the bird. "You sing well," she thinks, "but you are small and slow."</p><p>Then she jumps, but the bird flies away. The cat walks back hungry and a little sad.</p></body></html>`,
+  "OEBPS/ch2.xhtml": `<?xml version="1.0" encoding="utf-8"?><html xmlns="http://www.w3.org/1999/xhtml"><head><title>Night and Rain</title></head><body><h1>Night and Rain</h1><p>Night comes. Rain falls on the window, and the house is quiet.</p><p>The cat drinks her milk near the door, then sleeps on the warm chair and dreams.</p><p>"Tomorrow," she thinks, "I will find a bigger garden and a better breakfast."</p></body></html>`,
+};
+writeFileSync(`${root}/packages/web/public/fixtures/hello-en.epub`, zipStore(demo));
+
+console.log("fixtures: 7 txt + sample-7lang.epub + sample-image.epub + hello-en.epub");
