@@ -442,11 +442,11 @@ function renderLibrary(main: HTMLElement, sync: () => void): void {
   const heroSub = document.createElement("p");
   heroSub.className = "hero-sub";
   heroSub.textContent =
-    "把 EPUB / MOBI / TXT 拖进来，每个单词下面出现一行小释义——不用停下来查词典，读完整本书的速度和不查词典一样。";
+    "把 EPUB / MOBI / AZW3 / TXT 拖进来，每个单词下面出现一行小释义——不用停下来查词典，读完整本书的速度和不查词典一样。";
   const steps = document.createElement("ol");
   steps.className = "hero-steps";
   for (const [t, d] of [
-    ["选语言，上传书", "EPUB / MOBI / TXT / 网页链接，7 种语言 + 万能 Auto"],
+    ["选语言，上传书", "EPUB / MOBI / AZW3 / TXT / 网页链接，7 种语言 + 万能 Auto"],
     ["边读边点词", "词典释义直接标在词下；缺词或要语境义，点一下让 AI 补"],
     ["生词自动积累", "点过的词一键进生词本，导出复习"],
   ] as const) {
