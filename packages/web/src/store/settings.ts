@@ -21,7 +21,8 @@ export interface Settings {
   bookGlossary: boolean;
   /** 纯文本模式：开启后干掉所有图片与原书格式（走旧版纯文本分页链路）。默认关闭——即默认保真版式。 */
   plainTextMode: boolean;
-  /** 保真版式的翻页方式：scroll=整章滚动 / single=单页翻页 / double=双页翻页。 */
+  /** 保真版式的翻页方式：scroll=整章滚动 / single=单页翻页 / double=双页翻页。
+   * 默认 double：桌面双开对开最像“读书”；窄屏自然回落单列（cols = double && !singleCol ? 2 : 1）。 */
   richNav: "scroll" | "single" | "double";
 }
 
@@ -62,7 +63,7 @@ export const DEFAULT_SETTINGS: Settings = {
   pageSize: 20,
   bookGlossary: true,
   plainTextMode: false,
-  richNav: "single",
+  richNav: "double",
 };
 
 export function loadSettings(): Settings {

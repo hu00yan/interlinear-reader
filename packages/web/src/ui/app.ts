@@ -1393,6 +1393,24 @@ async function renderReader(main: HTMLElement, sync: () => void): Promise<void> 
    * 超出部分省略号收起，全文放 title 供悬停查看。
    */
   const setNotice = (text: string): void => {
+    // 释义总开关关闭时，每词下的 ··· 折叠占位极易被当成“坏了/不显示释义”
+    // （2026-11-05 用户反馈“全是省略号”）。状态行给出原因 + 一键恢复：
+    // 点击本条 = 重新打开释义。所有 notice 文案都经 setNotice，重绘不丢。
+    if (!s.showGloss) {
+      notice.textContent =
+        "释义已隐藏（词下的 ··· 是折叠占位，不是缺词）— 点击本条或工具栏「释义」按钮重新显示。" +
+        text;
+      notice.title = "点击重新显示逐词释义";
+      notice.style.cursor = "pointer";
+      notice.onclick = (): void => {
+        s.showGloss = true;
+        save();
+        sync();
+      };
+      return;
+    }
+    notice.style.cursor = "";
+    notice.onclick = null;
     notice.textContent = text;
     notice.title = text;
   };
