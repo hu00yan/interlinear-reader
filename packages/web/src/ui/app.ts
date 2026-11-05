@@ -3434,11 +3434,22 @@ function renderSettings(main: HTMLElement, sync: () => void): void {
       <li>JSZip 内含运行时辅助代码：<a href="https://github.com/calvinmetcalf/lie" target="_blank" rel="noopener noreferrer">lie</a>、<a href="https://github.com/calvinmetcalf/immediate" target="_blank" rel="noopener noreferrer">immediate</a>、<a href="https://github.com/YuzuJS/setImmediate" target="_blank" rel="noopener noreferrer">setImmediate</a>、<a href="https://github.com/nodejs/readable-stream" target="_blank" rel="noopener noreferrer">readable-stream</a>（MIT）。</li>
     </ul>
     <p class="muted">Foliate 完整 MIT 声明随 MOBI 解析代码发布，并在导入时输出到浏览器控制台。源码仓库中的 FOLIATE-MOBI-LICENSE.md 记录来源与分发要求。</p>`;
-  // 构建指纹：与 scripts/deploy-freshness.mjs / deploy 报告交叉核对，一眼看出部署是否落后源码。
+  // 构建指纹：运行时 fetch /build.json（不进 bundle——chunk hash 随构建环境漂移，
+  // 见 vite.config.ts 注释）。与 scripts/deploy-freshness.mjs 交叉核对，一眼看出部署是否落后。
   const buildStamp = document.createElement("p");
   buildStamp.className = "muted";
   buildStamp.setAttribute("data-testid", "build-stamp");
-  buildStamp.textContent = `构建版本 ${__ILR_BUILD__}`;
+  buildStamp.textContent = "构建版本 …";
+  void fetch(`${import.meta.env.BASE_URL}build.json`)
+    .then((r) => (r.ok ? r.json() : null))
+    .then((j: { commit?: string; builtAt?: string } | null) => {
+      buildStamp.textContent = j?.commit
+        ? `构建版本 ${j.commit}${j.builtAt ? `（${j.builtAt.slice(0, 10)}）` : ""}`
+        : "构建版本 dev（本地开发或未写指纹）";
+    })
+    .catch(() => {
+      buildStamp.textContent = "构建版本 dev（本地开发或未写指纹）";
+    });
   about.appendChild(buildStamp);
   main.appendChild(about);
 }

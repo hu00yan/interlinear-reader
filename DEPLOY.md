@@ -70,19 +70,17 @@ static-dict selfcheck → **deploy freshness**.
 ### Deploy freshness (2026-11 incident)
 
 The 2026-11-03 "uploaded EPUB renders without punctuation" report was NOT a
-source bug (fixed in 0bb0813) — the live Pages deployment had gone stale and
-nobody noticed, because every check tested source and none compared prod.
-`npm run check:deploy` (also verify step 12, `scripts/deploy-freshness.mjs`)
-fetches prod `index.html` and compares its entry bundle hash against the
-local `packages/web/dist` built from the current tree. Run it right after
-`npm run build` (verify.mjs builds first). Mismatch = deployment is behind
-or ahead of the tree: check the Pages git integration is still building
-main, or deploy manually (`wrangler pages deploy packages/web/dist`).
-A commit-fingerprint (`__ILR_BUILD__`, git short hash) is baked into each
-build and shown at the bottom of 设置 → 关于, so a stale deploy is visible
-in the UI too. On a brand-new commit the probe can false-FAIL once: the
-local dist was built pre-commit while Pages builds the pushed commit;
-rebuild (`npm run build`) and re-run.
+source bug (fixed in 0bb0813) — the live Pages deployment had gone stale for
+~7 weeks (deploys stopped right after `e182e30`, Sep 14) and nobody noticed,
+because every check tested source and none compared prod. `npm run
+check:deploy` (also verify step 12, `scripts/deploy-freshness.mjs`) compares
+prod `/build.json` (commit stamp written by `scripts/write-build-stamp.mjs`
+at the end of every web build) against the local `packages/web/dist/build.json`.
+Run it right after `npm run build` (verify.mjs builds first). Do NOT compare
+chunk hashes across environments: vite output hashes drift with the build
+environment (node/path/module-id salts) — same source, different hash, learned
+the hard way 2026-11-05. The stamp is also shown at the bottom of 设置 → 关于
+(fetched at runtime), so a stale deploy is visible in the UI too.
 
 ## 4. Free-tier accounting
 

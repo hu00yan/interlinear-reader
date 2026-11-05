@@ -1,21 +1,10 @@
-import { execSync } from "node:child_process";
 import { defineConfig } from "vite";
 
-// 构建指纹 = 所在 commit 短 hash（git 不可用/CI 深拷贝时退化为 unknown）。
-// 用途：设置页展示 + scripts/deploy-freshness.mjs 比对「线上部署 vs 本地构建」，
-// 防 2026-11 事故重演：源码已修标点丢失，但 Pages 部署停在旧构建，线上用户不可见。
-function gitShortHash(): string {
-  try {
-    return execSync("git rev-parse --short HEAD", { encoding: "utf8" }).trim() || "unknown";
-  } catch {
-    return "unknown";
-  }
-}
-
+// 注：构建指纹不走 vite define（__ILR_BUILD__ 已废弃）——chunk hash 随构建环境
+// （node/路径/module-id 盐）漂移，同一源码本地与 Cloudflare 产物 hash 不同，
+// 跨环境比对会假报。现改为构建后写 dist/build.json（scripts/write-build-stamp.mjs），
+// 运行时 fetch 展示，scripts/deploy-freshness.mjs 只比这个文件。
 export default defineConfig({
-  define: {
-    __ILR_BUILD__: JSON.stringify(gitShortHash()),
-  },
   build: {
     target: "es2020",
     // 懒加载块（lang-dict/epub/llm/url-ingest）必须真懒加载：默认的 modulepreload 会让
