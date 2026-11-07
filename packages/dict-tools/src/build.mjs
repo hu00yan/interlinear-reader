@@ -11,13 +11,34 @@
 // packages/dict-loader/src/shard.mjs (TRACK_B_LANGS/SHARD_RULE); this file
 // only re-exports/reads them so the contract can never fork (B1).
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync, unlinkSync } from "node:fs";
+import {
+  readFileSync,
+  writeFileSync,
+  mkdirSync,
+  existsSync,
+  readdirSync,
+  statSync,
+  unlinkSync,
+} from "node:fs";
 import { join, dirname, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { brotliCompressSync, gzipSync, gunzipSync, constants } from "node:zlib";
-import { shardFor, TRACK_B_LANGS, TRACK_B_TARGETS, SHARD_RULE } from "../../dict-loader/src/shard.mjs";
+import {
+  shardFor,
+  TRACK_B_LANGS,
+  TRACK_B_TARGETS,
+  SHARD_RULE,
+  normalizeLemma,
+} from "../../dict-loader/src/shard.mjs";
 import { cleanEntries, mergeEntryMaps } from "./clean.mjs";
-import { SOURCES, parseTsv, parseEcdictCsv, parseFreedictTei, parseJmdict, parseWiktionary } from "./sources.mjs";
+import {
+  SOURCES,
+  parseTsv,
+  parseEcdictCsv,
+  parseFreedictTei,
+  parseJmdict,
+  parseWiktionary,
+} from "./sources.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..", "..");
@@ -25,33 +46,58 @@ const ALL_LANGS = TRACK_B_LANGS;
 const USAGE = `build-dict [--lang=en,ja] [--raw=<dir>] [--out=<dir>] [--freq=<file>] [--maxEntries=N] [--strict]`;
 
 function parseArgs(argv) {
-  const out = { lang: null, raw: join(HERE, "..", "raw"), out: join(ROOT, "public", "dict"), freq: null, maxEntries: null, strict: false };
+  const out = {
+    lang: null,
+    raw: join(HERE, "..", "raw"),
+    out: join(ROOT, "public", "dict"),
+    freq: null,
+    maxEntries: null,
+    strict: false,
+  };
   // `npm run build:dict --lang=en,ja` arrives via npm_config_* env; also accept direct flags.
   const extra = [];
   if (process.env.npm_config_lang) extra.push(`--lang=${process.env.npm_config_lang}`);
   if (process.env.npm_config_raw) extra.push(`--raw=${process.env.npm_config_raw}`);
   if (process.env.npm_config_out) extra.push(`--out=${process.env.npm_config_out}`);
   if (process.env.npm_config_freq) extra.push(`--freq=${process.env.npm_config_freq}`);
-  if (process.env.npm_config_maxentries) extra.push(`--maxEntries=${process.env.npm_config_maxentries}`);
+  if (process.env.npm_config_maxentries)
+    extra.push(`--maxEntries=${process.env.npm_config_maxentries}`);
   if (process.env.npm_config_strict) extra.push("--strict");
   for (const a of [...extra, ...argv]) {
     if (a === "--") continue; // npm separator: `npm run build:dict -- --lang=…`
-    if (a.startsWith("--lang=")) out.lang = a.slice(7).split(",").map((s) => s.trim()).filter(Boolean);
-    else if (a === "--lang" && argv.length) { /* value consumed by npm; see bare-token fallback below */ }
-    else if (a.startsWith("--raw=")) out.raw = a.slice(6);
+    if (a.startsWith("--lang="))
+      out.lang = a
+        .slice(7)
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    else if (a === "--lang" && argv.length) {
+      /* value consumed by npm; see bare-token fallback below */
+    } else if (a.startsWith("--raw=")) out.raw = a.slice(6);
     else if (a.startsWith("--out=")) out.out = a.slice(6);
     else if (a.startsWith("--freq=")) out.freq = a.slice(7);
     else if (a.startsWith("--maxEntries=")) {
       const n = Number(a.slice(13));
-      if (!Number.isInteger(n) || n <= 0) { console.error(`invalid --maxEntries: ${a}\n${USAGE}`); process.exit(2); }
+      if (!Number.isInteger(n) || n <= 0) {
+        console.error(`invalid --maxEntries: ${a}\n${USAGE}`);
+        process.exit(2);
+      }
       out.maxEntries = n;
     } else if (a === "--strict") out.strict = true;
-    else if (a === "--help" || a === "-h") { console.log(USAGE); process.exit(0); }
+    else if (a === "--help" || a === "-h") {
+      console.log(USAGE);
+      process.exit(0);
+    }
     // npm v11 quirk: `npm run build:dict --lang=en,ja` arrives as bare `en,ja`.
     else if (/^[a-z,]+$/.test(a) && a.split(",").every((t) => ALL_LANGS.includes(t))) {
-      out.lang = a.split(",").map((s) => s.trim()).filter(Boolean);
+      out.lang = a
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    } else {
+      console.error(`unknown arg: ${a}\n${USAGE}`);
+      process.exit(2);
     }
-    else { console.error(`unknown arg: ${a}\n${USAGE}`); process.exit(2); }
   }
   return out;
 }
@@ -59,7 +105,14 @@ function parseArgs(argv) {
 function stableStringify(obj) {
   if (obj === null || typeof obj !== "object") return JSON.stringify(obj);
   if (Array.isArray(obj)) return "[" + obj.map(stableStringify).join(",") + "]";
-  return "{" + Object.keys(obj).sort().map((k) => JSON.stringify(k) + ":" + stableStringify(obj[k])).join(",") + "}";
+  return (
+    "{" +
+    Object.keys(obj)
+      .sort()
+      .map((k) => JSON.stringify(k) + ":" + stableStringify(obj[k]))
+      .join(",") +
+    "}"
+  );
 }
 
 function loadSeed(lang) {
@@ -97,7 +150,11 @@ function parseRawFile(lang, filename, text) {
   }
   if (lower.endsWith(".tsv")) return parseTsv(text);
   if (lower.endsWith(".csv")) return parseEcdictCsv(text);
-  if (lower.endsWith(".tei") || text.includes("<TEI") || (text.includes("<entry") && text.includes("<orth"))) {
+  if (
+    lower.endsWith(".tei") ||
+    text.includes("<TEI") ||
+    (text.includes("<entry") && text.includes("<orth"))
+  ) {
     return parseFreedictTei(text);
   }
   if (lower.endsWith(".xml")) {
@@ -109,7 +166,9 @@ function parseRawFile(lang, filename, text) {
   }
   if (lower.endsWith(".json")) {
     const j = JSON.parse(text);
-    return Array.isArray(j) ? j : Object.entries(j).map(([lemma, v]) => ({ lemma, zh: v.zh ?? [], en: v.en ?? [] }));
+    return Array.isArray(j)
+      ? j
+      : Object.entries(j).map(([lemma, v]) => ({ lemma, zh: v.zh ?? [], en: v.en ?? [] }));
   }
   throw new Error(`unsupported raw format: ${filename}`);
 }
@@ -123,8 +182,11 @@ function loadRaw(lang, rawDir) {
     const p = join(dir, f);
     if (!statSync(p).isFile()) continue;
     // Track VERIFY-licensed inputs for --strict (see SOURCES license field).
-    const srcFor = (SOURCES[lang] ?? []).find((s) => (s.raw ?? "").endsWith(f) || (s.raw ?? "").endsWith(f.replace(/\.gz$/, "")));
-    if (srcFor && /VERIFY/.test(srcFor.license ?? "")) seenVerify.push(`${lang}/${f} (${srcFor.name})`);
+    const srcFor = (SOURCES[lang] ?? []).find(
+      (s) => (s.raw ?? "").endsWith(f) || (s.raw ?? "").endsWith(f.replace(/\.gz$/, ""))
+    );
+    if (srcFor && /VERIFY/.test(srcFor.license ?? ""))
+      seenVerify.push(`${lang}/${f} (${srcFor.name})`);
     try {
       const { text, innerName } = readRawText(p);
       let rows;
@@ -132,7 +194,9 @@ function loadRaw(lang, rawDir) {
       else if (f.endsWith(".csv") || innerName.endsWith(".csv")) rows = parseEcdictCsv(text);
       else if (f.endsWith(".json") || innerName.endsWith(".json")) {
         const j = JSON.parse(text);
-        rows = Array.isArray(j) ? j : Object.entries(j).map(([lemma, v]) => ({ lemma, zh: v.zh ?? [], en: v.en ?? [] }));
+        rows = Array.isArray(j)
+          ? j
+          : Object.entries(j).map(([lemma, v]) => ({ lemma, zh: v.zh ?? [], en: v.en ?? [] }));
       } else {
         rows = parseRawFile(lang, innerName, text);
       }
@@ -159,7 +223,9 @@ async function loadFreqRanks(lang, freqFile) {
         for (const [k, v] of Object.entries(j)) m.set(String(k), Number(v) || 0);
         return m;
       }
-    } catch { /* not json -> try tsv */ }
+    } catch {
+      /* not json -> try tsv */
+    }
     const m = new Map();
     for (const line of raw.split("\n")) {
       if (!line.trim() || line.startsWith("#")) continue;
@@ -169,6 +235,10 @@ async function loadFreqRanks(lang, freqFile) {
     }
     return m;
   }
+  // OpenSubtitles 2018 词频表（freq/{lang}.tsv，CC BY-SA）——2026-11-07 起为核心层默认源；
+  // 显式 --freq 覆盖之；两皆缺才退 corpus（仅够验收，核心层意义有限）。
+  const fp = join(HERE, "..", "freq", `${lang}.tsv`);
+  if (!freqFile && existsSync(fp)) return loadFreqRanks(lang, fp);
   // Corpus-derived counts (lazy lang-packs import; build-only, never bundled).
   try {
     const { segment, lemmatize } = await import("../../lang-packs/src/index.mjs");
@@ -180,20 +250,26 @@ async function loadFreqRanks(lang, freqFile) {
     const m = new Map();
     for (const t of toks) {
       let l = t;
-      try { l = lemmatize(lang, t); } catch { /* */ }
+      try {
+        l = lemmatize(lang, t);
+      } catch {
+        /* */
+      }
       const k = normalizeLemma(lang, l) || normalizeLemma(lang, t);
       if (!k) continue;
       m.set(k, (m.get(k) ?? 0) + 1);
     }
     return m;
-  } catch { return new Map(); }
+  } catch {
+    return new Map();
+  }
 }
 
 function trimByFreq(merged, freqRanks, maxEntries) {
   if (!maxEntries || merged.size <= maxEntries) return { trimmed: merged, dropped: 0 };
   const scored = [...merged.keys()].map((k) => ({ k, s: freqRanks.get(k) ?? 0 }));
   // High freq first; ties alphabetical for determinism.
-  scored.sort((a, b) => (b.s - a.s) || (a.k < b.k ? -1 : a.k > b.k ? 1 : 0));
+  scored.sort((a, b) => b.s - a.s || (a.k < b.k ? -1 : a.k > b.k ? 1 : 0));
   const keep = new Set(scored.slice(0, maxEntries).map((x) => x.k));
   const out = new Map();
   for (const [k, v] of merged) if (keep.has(k)) out.set(k, v);
@@ -204,7 +280,9 @@ async function buildLang(lang, rawDir, outDir, opts) {
   const seed = loadSeed(lang);
   const { maps: raws, seenVerify } = loadRaw(lang, rawDir);
   if (opts.strict && seenVerify.length) {
-    console.error(`STRICT FAIL: VERIFY-licensed raw inputs need manual license confirmation, refusing to ship:\n - ${seenVerify.join("\n - ")}\nRemove them or rebuild without --strict (see DICT_SOURCES.md).`);
+    console.error(
+      `STRICT FAIL: VERIFY-licensed raw inputs need manual license confirmation, refusing to ship:\n - ${seenVerify.join("\n - ")}\nRemove them or rebuild without --strict (see DICT_SOURCES.md).`
+    );
     process.exit(3);
   }
   let merged = mergeEntryMaps([seed, ...raws]);
@@ -220,51 +298,144 @@ async function buildLang(lang, rawDir, outDir, opts) {
   // One immutable asset per source→target pair. Remove all previous shard layouts.
   for (const f of readdirSync(langDir)) {
     if (f === "manifest.json") continue;
-    try { unlinkSync(join(langDir, f)); } catch { /* */ }
+    try {
+      unlinkSync(join(langDir, f));
+    } catch {
+      /* */
+    }
   }
   const pairStats = {};
+  // 核心层（弱网首屏）：词频 top CORE_N ∩ 词典 → {target}.core.dict(.br)。
+  // 用户决策（2026-11-07）：3000-5000 不够长尾，取 12000（Zipf 覆盖普通书 ~90% token）；
+  // 长尾仍由全量层兜底（loader 核心命中即时渲染，miss 才等全量）。频表：OpenSubtitles
+  // 2018（packages/dict-tools/freq/{lang}.tsv，CC BY-SA；构建期用，不进客户端）。
+  const CORE_N = 12000;
+  const ranks = await loadFreqRanks(lang, opts.freq);
+  const coreWords =
+    ranks && ranks.size
+      ? [...ranks.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+      : [];
+  let coreLemmatize = null;
+  if (coreWords.length) {
+    try {
+      const packs = await import("../../lang-packs/src/index.mjs");
+      coreLemmatize = (w) => {
+        try {
+          return packs.lemmatize(lang, w);
+        } catch {
+          return w;
+        }
+      };
+    } catch {
+      coreLemmatize = (w) => w;
+    }
+  }
   for (const target of TRACK_B_TARGETS) {
-    const entries = Object.fromEntries([...merged]
-      .filter(([, entry]) => (entry[target] ?? []).length)
-      .map(([lemma, entry]) => [lemma, entry[target]]));
-    const lines = Object.entries(entries).sort(([a], [b]) => a.localeCompare(b))
+    const entries = new Map(
+      [...merged]
+        .filter(([, entry]) => (entry[target] ?? []).length)
+        .map(([lemma, entry]) => [lemma, entry[target]])
+    );
+    const lines = [...entries.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
       .map(([lemma, glosses]) => `${lemma}\t${glosses.join("\x1f")}`);
     const body = lines.join("\n") + (lines.length ? "\n" : "");
     const dp = join(langDir, `${target}.dict`);
     writeFileSync(dp, body);
-    const br = brotliCompressSync(Buffer.from(body), { params: { [constants.BROTLI_PARAM_QUALITY]: 9 } });
+    const br = brotliCompressSync(Buffer.from(body), {
+      params: { [constants.BROTLI_PARAM_QUALITY]: 9 },
+    });
     writeFileSync(dp + ".br", br);
-    pairStats[target] = { entries: lines.length, dictBytes: Buffer.byteLength(body), brBytes: br.length };
+    // 核心层：频表 surface → 还原 → 归一 → 词典命中才收（键与运行时查词键一致）。
+    // entries 用 Map（不是 Object.fromEntries 的普通对象）：词形 "constructor" 等
+    // 会命中 Object.prototype 继承属性，真值检查放行后 .join 崩溃（2026-11-07 实炸）。
+    let coreEntries = 0;
+    if (coreWords.length && coreLemmatize) {
+      const seen = new Set();
+      const coreLines = [];
+      for (const [fw] of coreWords) {
+        if (coreLines.length >= CORE_N) break;
+        const k = normalizeLemma(lang, coreLemmatize(fw)) || normalizeLemma(lang, fw);
+        const g = k ? entries.get(k) : undefined;
+        if (!g || seen.has(k)) continue;
+        seen.add(k);
+        coreLines.push(`${k}\t${g.join("\x1f")}`);
+        coreEntries = coreLines.length;
+      }
+      const coreBody = coreLines.join("\n") + (coreLines.length ? "\n" : "");
+      const cp = join(langDir, `${target}.core.dict`);
+      writeFileSync(cp, coreBody);
+      const cbr = brotliCompressSync(Buffer.from(coreBody), {
+        params: { [constants.BROTLI_PARAM_QUALITY]: 9 },
+      });
+      writeFileSync(cp + ".br", cbr);
+      pairStats[target] = {
+        entries: lines.length,
+        dictBytes: Buffer.byteLength(body),
+        brBytes: br.length,
+        coreEntries,
+        coreBrBytes: cbr.length,
+      };
+    } else {
+      pairStats[target] = {
+        entries: lines.length,
+        dictBytes: Buffer.byteLength(body),
+        brBytes: br.length,
+      };
+    }
   }
   const manifest = {
-    lang, entries: merged.size, targets: TRACK_B_TARGETS,
+    lang,
+    entries: merged.size,
+    targets: TRACK_B_TARGETS,
     sources: (SOURCES[lang] ?? []).map((s) => ({ name: s.name, license: s.license, url: s.url })),
-    builtWith: "seeds" + (raws.length ? `+raw(${raws.length} files)` : " (offline)") + (trimNote || ""),
-    format: "pair-first: dict/{lang}/{target}.dict.br; lemma\\tglosses; glosses separated by U+001F; UTF-8",
+    builtWith:
+      "seeds" + (raws.length ? `+raw(${raws.length} files)` : " (offline)") + (trimNote || ""),
+    format:
+      "pair-first: dict/{lang}/{target}.dict.br; lemma\\tglosses; glosses separated by U+001F; UTF-8",
     shardRule: "none (one object per language pair)",
   };
   writeFileSync(join(langDir, "manifest.json"), stableStringify(manifest));
-  return { lang, entries: merged.size, shards: 2, pairStats, jsonBytes: Object.values(pairStats).reduce((n, x) => n + x.dictBytes, 0), brBytes: Object.values(pairStats).reduce((n, x) => n + x.brBytes, 0), gzBytes: 0 };
+  return {
+    lang,
+    entries: merged.size,
+    shards: 2,
+    pairStats,
+    jsonBytes: Object.values(pairStats).reduce((n, x) => n + x.dictBytes, 0),
+    brBytes: Object.values(pairStats).reduce((n, x) => n + x.brBytes, 0),
+    gzBytes: 0,
+  };
 }
 
 const args = parseArgs(process.argv.slice(2));
 const langs = args.lang ?? ALL_LANGS;
 for (const l of langs) {
-  if (!ALL_LANGS.includes(l)) { console.error(`unknown lang: ${l} (expected ${ALL_LANGS.join(",")})`); process.exit(2); }
+  if (!ALL_LANGS.includes(l)) {
+    console.error(`unknown lang: ${l} (expected ${ALL_LANGS.join(",")})`);
+    process.exit(2);
+  }
 }
-console.log(`build:dict langs=[${langs.join(",")}] out=${args.out}${args.maxEntries ? ` maxEntries=${args.maxEntries}` : ""}${args.freq ? ` freq=${args.freq}` : ""}${args.strict ? " --strict" : ""}`);
+console.log(
+  `build:dict langs=[${langs.join(",")}] out=${args.out}${args.maxEntries ? ` maxEntries=${args.maxEntries}` : ""}${args.freq ? ` freq=${args.freq}` : ""}${args.strict ? " --strict" : ""}`
+);
 const results = [];
 for (const l of langs) results.push(await buildLang(l, args.raw, args.out, args));
 // sizes.json (overall, for SIZES table + R2 upload check)
 const sizesPath = join(args.out, "sizes.json");
 let prev = {};
-try { prev = existsSync(sizesPath) ? JSON.parse(readFileSync(sizesPath, "utf8")) : {}; } catch { prev = {}; }
+try {
+  prev = existsSync(sizesPath) ? JSON.parse(readFileSync(sizesPath, "utf8")) : {};
+} catch {
+  prev = {};
+}
 for (const r of results) prev[r.lang] = r;
 writeFileSync(sizesPath, JSON.stringify(prev, null, 2) + "\n");
 
 const pad = (s, n) => String(s).padEnd(n);
 console.log("lang  entries  shards   json(B)   br(B)  gz(B)");
 for (const r of results) {
-  console.log(`${pad(r.lang, 5)} ${pad(r.entries, 8)} ${pad(r.shards, 7)} ${pad(r.jsonBytes, 9)} ${pad(r.brBytes, 7)} ${r.gzBytes}`);
+  console.log(
+    `${pad(r.lang, 5)} ${pad(r.entries, 8)} ${pad(r.shards, 7)} ${pad(r.jsonBytes, 9)} ${pad(r.brBytes, 7)} ${r.gzBytes}`
+  );
 }
 console.log("done.");

@@ -61,21 +61,24 @@ const failed = [];
 
 for (const lang of LANGS) {
   for (const target of TARGETS) {
-    const local = join(src, lang, `${target}.dict`);
-    if (existsSync(local)) {
-      mkdirSync(join(dst, lang), { recursive: true });
-      cpSync(local, join(dst, lang, `${target}.dict`));
-      copied++;
-      continue;
+    for (const flavor of ["", ".core"]) {
+      const local = join(src, lang, `${target}${flavor}.dict`);
+      if (existsSync(local)) {
+        mkdirSync(join(dst, lang), { recursive: true });
+        cpSync(local, join(dst, lang, `${target}${flavor}.dict`));
+        copied++;
+        continue;
+      }
+      const text = await fromR2(lang, `${target}${flavor}`);
+      if (text !== null) {
+        mkdirSync(join(dst, lang), { recursive: true });
+        writeFileSync(join(dst, lang, `${target}${flavor}.dict`), text);
+        fetched++;
+        continue;
+      }
+      // core 缺失可容忍（loader 自动降级全量直载）；整包缺失才进 failed 名单。
+      if (!flavor) failed.push(`${lang}/${target}`);
     }
-    const text = await fromR2(lang, target);
-    if (text !== null) {
-      mkdirSync(join(dst, lang), { recursive: true });
-      writeFileSync(join(dst, lang, `${target}.dict`), text);
-      fetched++;
-      continue;
-    }
-    failed.push(`${lang}/${target}`);
   }
 }
 console.log(

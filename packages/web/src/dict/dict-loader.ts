@@ -779,9 +779,45 @@ function parseDictText(text: string): CompactPair {
 }
 
 // R2 公开源（canonical 全量整包；同源缺失时的最后兜底；无 Worker，直读 r2.dev）。
+// 空串环境变量按未设处理（|| 不用 ??——"" 会让 URL 变相对路径全军覆没）。
 const R2_PUBLIC =
-  (import.meta.env?.VITE_R2_PUBLIC as string | undefined) ??
+  (import.meta.env?.VITE_R2_PUBLIC as string | undefined) ||
   "https://pub-3d23245bf2874c8cbdf740c1d2761ada.r2.dev";
+
+/** 核心层缓存（词频 top 12000，~50-400KB br）：弱网首屏高频词即时出释义。
+ * 键 = pair；值与 shardMem 同形（Map 或 null）。全量层到位后 realLookup 不再走核心。 */
+const coreMem = new Map<string, CompactPair | null>();
+const coreInflight = new Map<string, Promise<CompactPair | null>>();
+
+/** 核心层加载：同源 {target}.core.dict → R2 {target}.core.dict.br（fetchDictText 自带
+ * brotli 兜底）。文件小（~百 KB），失败缓存 null 静默降级为全量直载（与旧路径等价）。 */
+async function loadPairCore(lang: SourceLang, target: TargetLang): Promise<CompactPair | null> {
+  const key = `${lang}/${target}`;
+  if (coreMem.has(key)) return coreMem.get(key) ?? null;
+  const ongoing = coreInflight.get(key);
+  if (ongoing) return ongoing;
+  const p = (async (): Promise<CompactPair | null> => {
+    const base = (import.meta.env?.BASE_URL ?? "/").replace(/\/$/, "");
+    const core = await fetchDictText(`${base}/dict/${lang}/${target}.core.dict`, true);
+    if (core !== null) return parseDictText(core);
+    const r2 = await fetchDictText(`${R2_PUBLIC}/dict/${lang}/${target}.core.dict.br`, false);
+    if (r2 !== null) return parseDictText(r2);
+    return null;
+  })().then(
+    (map) => {
+      coreMem.set(key, map);
+      coreInflight.delete(key);
+      return map;
+    },
+    () => {
+      coreMem.set(key, null);
+      coreInflight.delete(key);
+      return null;
+    }
+  );
+  coreInflight.set(key, p);
+  return p;
+}
 
 async function loadPair(lang: SourceLang, target: TargetLang): Promise<CompactPair | null> {
   const key = `${lang}/${target}`;
@@ -918,6 +954,51 @@ function lookupKeys(lang: SourceLang, lemma: string, surface?: string): string[]
   return keys;
 }
 
+/** 两层查词典：核心层（词频 top 12K，~百 KB）先扫——弱网首屏高频词即时出释义；
+ * 核心 miss 才等全量层（首次长尾查询起一次全量下载，与旧路径同价），全量到位后
+ * 后台预取已在途。coreData=null（无核心文件/失败）时行为与旧单层完全一致。
+ * scan(data) 在该层数据上跑完整键序（含 de 复合词扫描）；返回 null = 本层 miss。 */
+async function lookupInLayers<T>(
+  lang: SourceLang,
+  target: TargetLang,
+  scan: (data: CompactPair) => T | null
+): Promise<T | null> {
+  const core = await loadPairCore(lang, target);
+  if (core) {
+    const r = scan(core);
+    if (r !== null) {
+      void loadPair(lang, target); // 后台预热全量（长尾词马上要用）
+      return r;
+    }
+  }
+  const data = await loadPair(lang, target);
+  return data ? scan(data) : null;
+}
+
+/** 单注键序 + 德语闭合复合词右端兜底（Videospiele→Spiele、Wasserfall→Fall）：词典无
+ * 整词时，从右往左找最长已收录后缀成员——德语复合词语义头落在最后一个成员上，故
+ * 「最长右成员」的释义就是最接近整词的释义。长度护栏（整词≥8、成员≥4）防误配；
+ * 候选必须真实存在于词典（data.get 命中才算），造不出的形自然落选。 */
+function scanSingle(keys: string[], lang: SourceLang) {
+  return (data: CompactPair): string | null => {
+    for (const key of keys) {
+      if (!key) continue;
+      const hit = data.get(key)?.[0] ?? null;
+      if (hit) return hit;
+    }
+    if (lang === "de") {
+      const w = keys[0];
+      if (w && w.length >= 8 && !w.includes("-")) {
+        for (let i = 1; i <= w.length - 4; i++) {
+          const hit = data.get(w.slice(i))?.[0] ?? null;
+          if (hit) return hit;
+        }
+      }
+    }
+    return null;
+  };
+}
+
 async function realLookup(
   lang: SourceLang,
   target: TargetLang,
@@ -926,27 +1007,7 @@ async function realLookup(
 ): Promise<string | null> {
   const keys = lookupKeys(lang, lemma, surface);
   if (!keys) return null;
-  const data = await loadPair(lang, target);
-  for (const key of keys) {
-    if (!key) continue;
-    const hit = data?.get(key)?.[0] ?? null;
-    if (hit) return hit;
-  }
-  // 德语闭合复合词右端兜底（Videospiele→Spiele、Wasserfall→Fall）：词典无整词时，
-  // 从右往左找最长已收录后缀成员——德语复合词语义头落在最后一个成员上，故
-  // 「最长右成员」的释义就是最接近整词的释义。长度护栏（整词≥8、成员≥4）防误配；
-  // 候选必须真实存在于词典（data.get 命中才算），造不出的形自然落选。
-  if (lang === "de") {
-    const w = keys[0];
-    if (w && w.length >= 8 && !w.includes("-")) {
-      for (let i = 1; i <= w.length - 4; i++) {
-        const member = w.slice(i);
-        const hit = data?.get(member)?.[0] ?? null;
-        if (hit) return hit;
-      }
-    }
-  }
-  return null;
+  return lookupInLayers(lang, target, scanSingle(keys, lang));
 }
 
 /** 全注：同键序，返回该 lemma 全部释义（去重，上限 6；点词详情用，行间仍只显示首条）。 */
@@ -958,29 +1019,31 @@ async function realLookupAll(
 ): Promise<string[]> {
   const keys = lookupKeys(lang, lemma, surface);
   if (!keys) return [];
-  const data = await loadPair(lang, target);
-  const out: string[] = [];
-  for (const key of keys) {
-    if (!key) continue;
-    for (const g of data?.get(key) ?? []) {
-      if (g && !out.includes(g) && out.length < 6) out.push(g);
+  const scan = (data: CompactPair): string[] | null => {
+    const out: string[] = [];
+    for (const key of keys) {
+      if (!key) continue;
+      for (const g of data.get(key) ?? []) {
+        if (g && !out.includes(g) && out.length < 6) out.push(g);
+      }
+      if (out.length > 0) break; // 首个命中的键即定（与单注同一答案，不抢答）
     }
-    if (out.length > 0) break; // 首个命中的键即定（与单注同一答案，不抢答）
-  }
-  if (out.length === 0 && lang === "de") {
-    // 与 realLookup 同一口径的复合词右端兜底：点词详情与行间释义一致。
-    const w = keys[0];
-    if (w && w.length >= 8 && !w.includes("-")) {
-      for (let i = 1; i <= w.length - 4; i++) {
-        const hit = data?.get(w.slice(i))?.[0] ?? null;
-        if (hit) {
-          out.push(hit);
-          break;
+    if (out.length === 0 && lang === "de") {
+      // 与单注同口径的复合词右端兜底：点词详情与行间释义一致。
+      const w = keys[0];
+      if (w && w.length >= 8 && !w.includes("-")) {
+        for (let i = 1; i <= w.length - 4; i++) {
+          const hit = data.get(w.slice(i))?.[0] ?? null;
+          if (hit) {
+            out.push(hit);
+            break;
+          }
         }
       }
     }
-  }
-  return out;
+    return out; // 空数组同 miss（无释义可给）
+  };
+  return (await lookupInLayers(lang, target, scan)) ?? [];
 }
 
 export type GlossSource = "cache" | "dict";
