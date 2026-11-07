@@ -296,7 +296,347 @@ function germanCandidates(lemma: string): string[] {
   // 二格 -s：Lebens->leben / Abends->abend（原形优先试过，本条只增候选）。
   if (w.length > 5 && w.endsWith("s")) push(w.slice(0, -1));
   if (w.length > 4 && w.endsWith("e")) push(w.slice(0, -1));
+  // 现在时第一人称 -e（spreche/schreibe）：回补 -en（sprechen/schreiben）；
+  // 第一分词 -end（sprechend/lesend）：剥 end 回补 -en。
+  if (w.length > 4 && w.endsWith("e")) push(`${w.slice(0, -1)}en`);
+  if (w.length >= 6 && w.endsWith("end")) push(`${w.slice(0, -3)}en`);
   return out.slice(0, 8);
+}
+
+/** 罗曼语屈折候选（fr/it/es）：词典只收原形（infinitive/原形名词/阳性单数形容词），
+ * 屈折形必须「剥尾 + 回补不定式词尾」才能接上。pack 的剥尾规则会过剥/错剥
+ * （fr maisons→maiser、es hablaban→hablabar），故候选同时从 lemma 与真实 surface
+ * 两侧展开（surface 是真实词形，直接剥更可靠）。只增候选不减原形：
+ * 原形/包 lemma 优先命中，剥错的形词典没有自然落选（词典即护栏）。 */
+function romanceCandidates(lang: "fr" | "it" | "es", form: string): string[] {
+  const base = normalize(lang, form);
+  if (!base || base.length < 3) return [];
+  const INF: Record<"fr" | "it" | "es", [string, string, string]> = {
+    fr: ["er", "ir", "re"],
+    it: ["are", "ere", "ire"],
+    es: ["ar", "er", "ir"],
+  };
+  const infs = INF[lang];
+  const out: string[] = [];
+  const push = (c: string): void => {
+    const nk = normalize(lang, c);
+    if (nk && nk !== base && !out.includes(nk)) out.push(nk);
+  };
+  const stemTo = (stem: string): void => {
+    if (!stem || stem.length < 2) return;
+    for (const inf of infs) push(stem + inf);
+    // 元音收尾的 stem（fr finis→fini）：词尾已是 -i/-é 等的 -ir/-re 动词干，补 r 即原形
+    if (/[aeiou]$/.test(stem)) push(`${stem}r`);
+  };
+  // 反身/遮蔽尾先剥（es levantarse / fr se lever 已由包 clitic 处理，此处兜底 -se）。
+  let w = base;
+  if (lang === "es" && w.endsWith("se") && w.length > 5) w = w.slice(0, -2);
+  // 动词屈折尾（长尾优先，一次剥一尾）。
+  const END: Record<"fr" | "it" | "es", string[]> = {
+    fr: [
+      "eraient",
+      "erions",
+      "issements",
+      "issement",
+      "issent",
+      "issions",
+      "issiez",
+      "eront",
+      "erez",
+      "erai",
+      "erons",
+      "iront",
+      "irai",
+      "irons",
+      "aient",
+      "antes",
+      "ante",
+      "ants",
+      "ions",
+      "iez",
+      "ais",
+      "ait",
+      "ez",
+      "es",
+      "ant",
+      "e",
+      "s",
+      "x",
+    ],
+    it: [
+      "erebbero",
+      "irebbero",
+      "arebbero",
+      "iscono",
+      "eranno",
+      "iranno",
+      "aranno",
+      "eremo",
+      "iremo",
+      "aremo",
+      "erete",
+      "irete",
+      "arete",
+      "ero",
+      "irai",
+      "iria",
+      "erei",
+      "irei",
+      "arei",
+      "avano",
+      "evano",
+      "ivano",
+      "avate",
+      "evate",
+      "ivate",
+      "iamo",
+      "ato",
+      "ata",
+      "ati",
+      "ate",
+      "uto",
+      "uta",
+      "uti",
+      "ute",
+      "ito",
+      "ita",
+      "iti",
+      "ite",
+      "ava",
+      "evo",
+      "ivo",
+      "isci",
+      "isce",
+      "endo",
+      "ando",
+      "ano",
+      "ate",
+      "ete",
+      "ite",
+      "o",
+      "i",
+      "a",
+      "e",
+    ],
+    es: [
+      "aron",
+      "ieron",
+      "abamos",
+      "iamos",
+      "asteis",
+      "isteis",
+      "iendo",
+      "yendo",
+      "ando",
+      "adas",
+      "idas",
+      "ados",
+      "idos",
+      "aste",
+      "iste",
+      "aban",
+      "abas",
+      "aran",
+      "eran",
+      "iran",
+      "iera",
+      "iese",
+      "aria",
+      "eria",
+      "iria",
+      "ara",
+      "era",
+      "ira",
+      "aba",
+      "ia",
+      "ada",
+      "ida",
+      "ado",
+      "ido",
+      "amos",
+      "ais",
+      "an",
+      "en",
+      "as",
+      "es",
+      "a",
+      "e",
+      "o",
+    ],
+  };
+  const ends = [...END[lang]].sort((a, b) => b.length - a.length);
+  for (const tail of ends) {
+    if (w.length - tail.length >= 2 && w.endsWith(tail)) {
+      const stem = w.slice(0, w.length - tail.length);
+      stemTo(stem);
+      break; // 只剥一尾（长尾优先）
+    }
+  }
+  // 名词/形容词性变化的第二落点：剥尾后另推常见词尾交替（it grandi→grande、
+  // es grandes→grande、fr petites→petit、it belle→bello 系）。词典护栏挡不存在的形。
+  if (lang === "fr") {
+    // 高频不规则阴性/复数（词典只收阳性原形；-e 剥尾链到不了 beau/vieux 这类）
+    const FR_IRREG: Record<string, string> = {
+      belle: "beau",
+      belles: "beau",
+      bel: "beau",
+      nouvelle: "nouveau",
+      nouvelles: "nouveau",
+      vieille: "vieux",
+      vieilles: "vieux",
+      mauvaise: "mauvais",
+      mauvaises: "mauvais",
+      douce: "doux",
+      douces: "doux",
+      folle: "fou",
+      molle: "mou",
+    };
+    if (FR_IRREG[w]) push(FR_IRREG[w]);
+    if (w.endsWith("aux") && w.length > 5) push(`${w.slice(0, -3)}al`);
+    if (w.endsWith("eaux") && w.length > 6) push(w.slice(0, -1));
+    if (w.endsWith("e") && w.length > 4) push(w.slice(0, -1)); // petites→petit
+    if (w.endsWith("es") && w.length > 5) push(w.slice(0, -2)); // belles→bell→(见 -e 链)
+    if (w.endsWith("er") && w.length > 5) push(`${w.slice(0, -2)}on`); // pack 过剥 maisons→maiser→maison
+    if (w.endsWith("u") && w.length > 4) push(`${w.slice(0, -1)}re`); // vendu→vendre、perdu→perdre
+    if (w.endsWith("ai") && w.length > 4) push(`${w.slice(0, -2)}er`); // parlais→parlai→parler
+    if (w.endsWith("isser") && w.length > 7) push(`${w.slice(0, -5)}ir`); // finissent→finisser→finir
+  }
+  if (lang === "it") {
+    if (w.endsWith("i") && w.length > 4) {
+      push(w.slice(0, -1));
+      push(`${w.slice(0, -1)}e`);
+      push(`${w.slice(0, -1)}o`);
+    }
+    if (w.endsWith("e") && w.length > 4) {
+      push(w.slice(0, -1));
+      push(`${w.slice(0, -1)}a`);
+    }
+    if (w.endsWith("a") && w.length > 4) {
+      push(w.slice(0, -1));
+      push(`${w.slice(0, -1)}o`);
+    }
+    if (w.endsWith("o") && w.length > 4) {
+      push(w.slice(0, -1));
+      push(`${w.slice(0, -1)}e`);
+    }
+    // pack 把 -ere/-ire 类三单 manged 成 -a/-e 尾（prendе→prenda）：剥尾回三词尾
+    if (/(ar|er|ir)$/.test(w) && w.length >= 5) stemTo(w.slice(0, -2));
+    if (w.endsWith("mente") && w.length > 7) push(w.slice(0, -5));
+  }
+  if (lang === "es") {
+    if (w.endsWith("s") && !w.endsWith("ss") && w.length > 4) push(w.slice(0, -1)); // casas/grandes→casa/grande
+    // pack -an/-en 过剥的假不定式（viven→viver、hablaban→hablabar）：剥词尾回三词尾；
+    // 未完成词干 -ab-（hablab+ar）再剥一层回 hablar。
+    if (/(ar|er|ir)$/.test(w) && w.length >= 5) {
+      const stem = w.slice(0, -2);
+      stemTo(stem);
+      if (/ab$/.test(stem)) stemTo(stem.slice(0, -2));
+    }
+    if (w.endsWith("mente") && w.length > 7) {
+      push(w.slice(0, -5));
+      push(`${w.slice(0, -6)}o`);
+    }
+  }
+  // 未命中任何屈折尾时也试「stem + 三词尾」（fr parl/mang 这类 pack 过剥残干）。
+  if (out.length === 0 && !infs.some((inf) => w.endsWith(inf))) stemTo(w);
+  return out.slice(0, 12);
+}
+
+/** 俄语屈折候选：动词人称/过去（говоришь/говорил→говорить）、名词变格（книги→книга、
+ * домов→дом）、形容词性（хорошая→хороший）。反身 -ся/-сь 先剥。词典护栏同上。 */
+function russianCandidates(form: string): string[] {
+  const base = normalize("ru", form);
+  if (!base || base.length < 4) return [];
+  const out: string[] = [];
+  const push = (c: string): void => {
+    const nk = normalize("ru", c);
+    if (nk && nk !== base && !out.includes(nk)) out.push(nk);
+  };
+  let w = base;
+  if (/(ся|сь)$/.test(w)) w = w.slice(0, -2); // 反身尾（говорится/учусь）
+  // 动词：人称尾 → stem+ить/ать/еть/ыть；过去式 -л/-ла/-ло/-ли → stem+ть。
+  const V_END = [
+    "ишь",
+    "ешь",
+    "аете",
+    "ите",
+    "ают",
+    "яют",
+    "ует",
+    "ает",
+    "ит",
+    "ем",
+    "им",
+    "ете",
+    "ут",
+    "ют",
+    "ат",
+    "ят",
+  ];
+  let isVerb = false;
+  for (const tail of V_END) {
+    if (w.length - tail.length >= 2 && w.endsWith(tail)) {
+      const stem = w.slice(0, w.length - tail.length);
+      for (const inf of ["ить", "ать", "еть", "ыть"]) push(stem + inf);
+      isVerb = true;
+      break;
+    }
+  }
+  const past = w.match(/л(а|и|о)?$/);
+  if (past && w.length > 4) {
+    const stem = w.slice(0, w.length - past[0].length); // говорил→говори、говорила→говори
+    push(`${stem}ть`);
+    push(stem);
+    isVerb = true;
+  }
+  // 形容词性：-ая/-ое/-ые/-ого/-ому/-ых/-ым/-ую → -ый/-ой/-ий；
+  // pack 产出的 -ый（хорошый）也要有 →ий 交替（词典收 хороший）。
+  const A_END = ["ого", "ому", "ая", "ое", "ые", "ых", "ым", "ую"];
+  for (const tail of A_END) {
+    if (w.length - tail.length >= 3 && w.endsWith(tail)) {
+      const stem = w.slice(0, w.length - tail.length);
+      push(`${stem}ый`);
+      push(`${stem}ой`);
+      push(`${stem}ий`);
+      isVerb = false;
+      break;
+    }
+  }
+  if (/ый$/.test(w) && w.length > 4) push(`${w.slice(0, -2)}ий`);
+  if (!isVerb) {
+    // 名词变格：剥格尾，回补主格 -а/-я； ovaries 类 -ов/-ей 直接落干。
+    const N_END = [
+      "ами",
+      "ями",
+      "ов",
+      "ей",
+      "ах",
+      "ях",
+      "ой",
+      "ом",
+      "ам",
+      "ям",
+      "ую",
+      "у",
+      "ю",
+      "е",
+      "ы",
+      "и",
+      "а",
+      "я",
+      "й",
+    ];
+    for (const tail of N_END) {
+      if (w.length - tail.length >= 2 && w.endsWith(tail)) {
+        const stem = w.slice(0, w.length - tail.length);
+        push(stem);
+        push(`${stem}а`);
+        push(`${stem}я`);
+        break;
+      }
+    }
+  }
+  return out.slice(0, 14);
 }
 
 /** 桥接英译文的可用形态：去括号注，>4 词的例句式变体直接丢弃（首词回退会撞出错误释义，
@@ -494,6 +834,21 @@ function lookupKeys(lang: SourceLang, lemma: string, surface?: string): string[]
   if (lang === "de") {
     for (const c of germanCandidates(lemma)) {
       push(c);
+    }
+  }
+  // 罗曼语（fr/it/es）与俄语：词典只收原形，屈折形靠「剥尾+回补」候选接上。
+  // 同时从 lemma 与真实 surface 两侧展开：pack 剥尾会过剥/错剥（fr maisons→maiser、
+  // es hablaban→hablabar），surface 是真实词形、直接剥更可靠。词典护栏挡剥错的形。
+  if (lang === "fr" || lang === "it" || lang === "es") {
+    for (const c of romanceCandidates(lang, base)) push(c);
+    if (surface && normalize(lang, surface) !== normalize(lang, base)) {
+      for (const c of romanceCandidates(lang, surface)) push(c);
+    }
+  }
+  if (lang === "ru") {
+    for (const c of russianCandidates(base)) push(c);
+    if (surface && normalize(lang, surface) !== normalize(lang, base)) {
+      for (const c of russianCandidates(surface)) push(c);
     }
   }
   // 日语活用展开（deinflectJa，原形优先）：買いました→買う、高かった→高い。

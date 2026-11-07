@@ -2,7 +2,7 @@
 // 指纹不进 bundle（chunk hash 随构建环境漂移，跨环境比对必假报），只写元数据文件，
 // 供设置页运行时 fetch 展示 + scripts/deploy-freshness.mjs 环境无关地比对。
 import { execSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { writeFileSync, readFileSync as readFileSync2 } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -15,8 +15,21 @@ function gitShortHash() {
   }
 }
 const commit = gitShortHash() ?? "unknown";
+// 同 commit 重建（pre-push 钩子等）不重写时间戳：避免 dist/build.json 每次构建都抖动
+const existing = readStamp();
 writeFileSync(
   join(dist, "build.json"),
-  JSON.stringify({ commit, builtAt: new Date().toISOString() }, null, 2) + "\n"
+  JSON.stringify(
+    { commit, builtAt: existing?.commit === commit ? existing.builtAt : new Date().toISOString() },
+    null,
+    2
+  ) + "\n"
 );
 console.log(`build.json: ${commit}`);
+function readStamp() {
+  try {
+    return JSON.parse(readFileSync2(join(dist, "build.json"), "utf8"));
+  } catch {
+    return null;
+  }
+}
