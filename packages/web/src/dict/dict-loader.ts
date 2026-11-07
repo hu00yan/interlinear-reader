@@ -724,6 +724,32 @@ async function fetchDictText(url: string, sameOrigin: boolean): Promise<string |
   try {
     const res = await fetch(url, { headers: { Accept: "text/plain" } });
     if (!res.ok) return null;
+    // R2 的 .br 对象可能带 content-encoding: br（浏览器透明解压，text 直接可用），
+    // 也可能不带（老对象/回显缺失）——字节嗅探 + DecompressionStream 兜底解压。
+    if (/\.br$/i.test(url)) {
+      const buf = new Uint8Array(await res.arrayBuffer());
+      const head = buf.subarray(0, 256);
+      const printable = head.every(
+        (b) => b === 9 || b === 13 || b === 10 || (b >= 32 && b < 127) || b >= 128
+      );
+      let text: string;
+      if (printable && head.includes(9)) {
+        text = new TextDecoder().decode(buf);
+      } else {
+        try {
+          // TS DOM lib（ES2020）的 CompressionFormat 未含 "br"，运行时浏览器支持
+          // （Chrome 103+/Safari 16.4+/FF 113+）；解压失败按缺失处理走原路径。
+          const fmt = "br" as unknown as "gzip";
+          const stream = new Response(
+            new Blob([buf]).stream().pipeThrough(new DecompressionStream(fmt))
+          );
+          text = await stream.text();
+        } catch {
+          return null;
+        }
+      }
+      return text.includes("\t") ? text : null;
+    }
     const text = await res.text();
     // 同源缺文件时 SPA 回退吐 index.html（200 text/html）—— 当缺失处理，走分片/R2。
     if (

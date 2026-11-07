@@ -57,16 +57,16 @@ node --test packages/dict-tools/test/*.test.mjs
 
 ## §契约分叉（B1：Track B vs CONTRACT.md/Track D — 按 track 分流）
 
-| | Track B（本流水线，`packages/dict-*`） | Track D（`CONTRACT.md`，别轨拥有） |
-|---|---|---|
-| langs | `en,de,fr,it,es,ru,ja`（`TRACK_B_LANGS`） | `en,zh,ja,es,fr,de,el` |
-| shard | 首 2 字符（本文件上一节） | `fnv1a(term)%2 → 00/01` |
+|        | Track B（本流水线，`packages/dict-*`）                     | Track D（`CONTRACT.md`，别轨拥有）                |
+| ------ | ---------------------------------------------------------- | ------------------------------------------------- |
+| langs  | `en,de,fr,it,es,ru,ja`（`TRACK_B_LANGS`）                  | `en,zh,ja,es,fr,de,el`                            |
+| shard  | 首 2 字符（本文件上一节）                                  | `fnv1a(term)%2 → 00/01`                           |
 | R2 key | `dict/{trackB-lang}/{首2字符}.json.br`（261 objects 量级） | `dict/{lang}/00.json.br,01.json.br`（14 objects） |
-| loader | `packages/dict-loader`（`shardFor/normalizeLemma`） | `src/lib/loader.mjs`（别轨实现） |
+| loader | `packages/dict-loader`（`shardFor/normalizeLemma`）        | `src/lib/loader.mjs`（别轨实现）                  |
 
 - `public/dict/{el,zh}` 归属：**不归 Track B** — `build:dict` 只写 7 个 Track B
   目录；`deploy-dict.mjs` 只上传 Track B langs 并 `skip` 外来目录/文件
- （`sizes.json/coverage.json/el/zh`，见 dry-run 尾行）；`budget.mjs` 只 gate
+  （`sizes.json/coverage.json/el/zh`，见 dry-run 尾行）；`budget.mjs` 只 gate
   Track B langs。`el/zh` 由其它轨道按 CONTRACT.md 自行构建/上传，Track B
   脚本永不读取 `00.json`、永不因外来目录 ENOENT。
 - web 侧 `packages/web/src/dict/dict-loader.ts` 接线留给 A 路；Track B 只保证
@@ -74,44 +74,67 @@ node --test packages/dict-tools/test/*.test.mjs
 
 ## 来源与 License
 
-| lang | 来源 | 用途 | License | raw 路径 / 获取方式 |
-|---|---|---|---|---|
-| en | ECDICT（skywind3000/ECDICT） | en→zh 主力 | MIT | `raw/en/ecdict.csv`：`curl -L https://github.com/skywind3000/ECDICT/raw/master/ecdict.csv`（解析器 `parseEcdictCsv`） |
-| en | Wiktionary EN dump | en→en 释义补齐 | CC BY-SA 4.0 | `raw/en/enwiktionary.xml`：`https://dumps.wikimedia.org/enwiktionary/`（需署名，见下） |
-| en | FreeDict eng-deu | en gloss 校验 | GPL-3.0+ / CC BY-SA（按词典） | `raw/en/freedict-eng-deu.tei`（解析器 `parseFreedictTei`） |
-| de | FreeDict deu-eng | de→en 主力 | GPL-3.0+ / CC BY-SA（按词典） | `raw/de/freedict-deu-eng.tei`，`https://freedict.org/` |
-| de | Wiktionary DE dump | de→zh/en 补齐 | CC BY-SA 4.0 | `raw/de/dewiktionary.xml` |
-| de | 社区 de-zh 表 | de→zh | **VERIFY — 上线前必须逐文件确认** | `raw/de/de-zh.tsv`（`parseTsv`：`lemma\tzh1;zh2\ten1;en2`） |
-| fr | FreeDict fra-eng | fr→en 主力 | GPL-3.0+ / CC BY-SA | `raw/fr/freedict-fra-eng.tei` |
-| fr | Wiktionary FR dump | fr→zh/en 补齐 | CC BY-SA 4.0 | `raw/fr/frwiktionary.xml` |
-| it | FreeDict ita-eng | it→en 主力 | GPL-3.0+ / CC BY-SA | `raw/it/freedict-ita-eng.tei` |
-| it | Wiktionary IT dump | it→zh/en 补齐 | CC BY-SA 4.0 | `raw/it/itwiktionary.xml` |
-| es | FreeDict spa-eng | es→en 主力 | GPL-3.0+ / CC BY-SA | `raw/es/freedict-spa-eng.tei` |
-| es | Wiktionary ES dump | es→zh/en 补齐 | CC BY-SA 4.0 | `raw/es/eswiktionary.xml` |
-| ru | FreeDict rus-eng | ru→en 主力 | GPL-3.0+ / CC BY-SA | `raw/ru/freedict-rus-eng.tei` |
-| ru | Wiktionary RU dump | ru→zh/en 补齐 | CC BY-SA 4.0 | `raw/ru/ruwiktionary.xml` |
-| ru | 社区 ru-en 表 | ru→en 补齐 | **VERIFY — 上线前必须逐文件确认** | `raw/ru/ru-en.tsv` |
-| ja | JMdict_e（EDRDG） | ja→en 主力（keb+reb 双 lemma） | CC BY-SA 4.0（EDRDG licence，需署名 EDRDG） | `raw/ja/JMdict_e.gz`：`http://ftp.edrdg.org/pub/Nihongo/JMdict_e.gz`（解析器 `parseJmdict(xml,"eng")`） |
-| ja | JMdict 中文 fork | ja→zh | **VERIFY — 推定 CC BY-SA，上线前确认 fork 声明** | `raw/ja/JMdict_zh.gz`（解析器 `parseJmdict(xml,"chi")`） |
-| ja | Wiktionary JA dump | ja→zh/en 补齐 | CC BY-SA 4.0 | `raw/ja/jawiktionary.xml` |
+| lang | 来源                         | 用途                           | License                                          | raw 路径 / 获取方式                                                                                                   |
+| ---- | ---------------------------- | ------------------------------ | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| en   | ECDICT（skywind3000/ECDICT） | en→zh 主力                     | MIT                                              | `raw/en/ecdict.csv`：`curl -L https://github.com/skywind3000/ECDICT/raw/master/ecdict.csv`（解析器 `parseEcdictCsv`） |
+| en   | Wiktionary EN dump           | en→en 释义补齐                 | CC BY-SA 4.0                                     | `raw/en/enwiktionary.xml`：`https://dumps.wikimedia.org/enwiktionary/`（需署名，见下）                                |
+| en   | FreeDict eng-deu             | en gloss 校验                  | GPL-3.0+ / CC BY-SA（按词典）                    | `raw/en/freedict-eng-deu.tei`（解析器 `parseFreedictTei`）                                                            |
+| de   | FreeDict deu-eng             | de→en 主力                     | GPL-3.0+ / CC BY-SA（按词典）                    | `raw/de/freedict-deu-eng.tei`，`https://freedict.org/`                                                                |
+| de   | Wiktionary DE dump           | de→zh/en 补齐                  | CC BY-SA 4.0                                     | `raw/de/dewiktionary.xml`                                                                                             |
+| de   | 社区 de-zh 表                | de→zh                          | **VERIFY — 上线前必须逐文件确认**                | `raw/de/de-zh.tsv`（`parseTsv`：`lemma\tzh1;zh2\ten1;en2`）                                                           |
+| fr   | FreeDict fra-eng             | fr→en 主力                     | GPL-3.0+ / CC BY-SA                              | `raw/fr/freedict-fra-eng.tei`                                                                                         |
+| fr   | Wiktionary FR dump           | fr→zh/en 补齐                  | CC BY-SA 4.0                                     | `raw/fr/frwiktionary.xml`                                                                                             |
+| it   | FreeDict ita-eng             | it→en 主力                     | GPL-3.0+ / CC BY-SA                              | `raw/it/freedict-ita-eng.tei`                                                                                         |
+| it   | Wiktionary IT dump           | it→zh/en 补齐                  | CC BY-SA 4.0                                     | `raw/it/itwiktionary.xml`                                                                                             |
+| es   | FreeDict spa-eng             | es→en 主力                     | GPL-3.0+ / CC BY-SA                              | `raw/es/freedict-spa-eng.tei`                                                                                         |
+| es   | Wiktionary ES dump           | es→zh/en 补齐                  | CC BY-SA 4.0                                     | `raw/es/eswiktionary.xml`                                                                                             |
+| ru   | FreeDict rus-eng             | ru→en 主力                     | GPL-3.0+ / CC BY-SA                              | `raw/ru/freedict-rus-eng.tei`                                                                                         |
+| ru   | Wiktionary RU dump           | ru→zh/en 补齐                  | CC BY-SA 4.0                                     | `raw/ru/ruwiktionary.xml`                                                                                             |
+| ru   | 社区 ru-en 表                | ru→en 补齐                     | **VERIFY — 上线前必须逐文件确认**                | `raw/ru/ru-en.tsv`                                                                                                    |
+| ja   | JMdict_e（EDRDG）            | ja→en 主力（keb+reb 双 lemma） | CC BY-SA 4.0（EDRDG licence，需署名 EDRDG）      | `raw/ja/JMdict_e.gz`：`http://ftp.edrdg.org/pub/Nihongo/JMdict_e.gz`（解析器 `parseJmdict(xml,"eng")`）               |
+| ja   | JMdict 中文 fork             | ja→zh                          | **VERIFY — 推定 CC BY-SA，上线前确认 fork 声明** | `raw/ja/JMdict_zh.gz`（解析器 `parseJmdict(xml,"chi")`）                                                              |
+| ja   | Wiktionary JA dump           | ja→zh/en 补齐                  | CC BY-SA 4.0                                     | `raw/ja/jawiktionary.xml`                                                                                             |
 
 CC BY-SA 4.0 合规：App 内 About 页署名（Wiktionary / EDRDG / FreeDict 各词典作者），
 衍生分片保持 CC BY-SA（源码+分片同发即可满足 ShareAlike）；GPL 仅约束 FreeDict 解析链路，
 分片数据以各词典自带 CC BY-SA 为准，GPL 代码不进客户端 bundle（构建脚本仅跑在 CI）。
 
-当前仓库状态：`raw/` 尚无 dumps，构建使用 `packages/dict-tools/seeds/*.seed.json`
-（手工核心词 ~40/语言，MIT-equivalent 自有）——`manifest.json` 中 `builtWith` 会如实标注
-`seeds (offline)` 或 `seeds+raw(N files)`。
+当前仓库状态（2026-11-07）：`raw/` 已入库主要 dumps（ecdict.csv 66MB / fra-eng /
+ita-eng / rus-eng TEI / JMdict_e.gz / 各语言 curated-zh.tsv + wiktionary 片段），
+**唯 `raw/de/freedict-deu-eng.tei`（430MB）超 GitHub 100MB 限制不入库**——构建前按
+上表 URL 自取（下载 release 的 src.tar.xz，取 `deu-eng.tei` 放
+`raw/de/freedict-deu-eng.tei`）。构建产物 `public/dict/**` 一律**不入 git**
+（仓库体积；R2 是 canonical）：
+
+- 本地：`npm run build:dict -- --lang=…` 产出根 `public/dict/`（gitignored）。
+- CF Pages 构建：`copy-dict` 发现根产物缺失时，逐语言对从 R2 拉
+  `dict/{lang}/{target}.dict.br` 服务端解压进 dist（无 CORS 问题）。
+- 词典数据变更的发布动作：`npm run build:dict` 验证后 `npm run deploy:dict:live`
+  （需 `wrangler login`）推 R2——之后每次 Pages 构建自动取到新数据。
+- `manifest.json` 中 `builtWith` 会如实标注 `seeds (offline)` 或 `seeds+raw(N files)`。
+
+### 2026-11-07 数据规模实况
+
+| 对       | 条目         | 来源                                                                                                                        |
+| -------- | ------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| en→zh    | 107,715      | ECDICT                                                                                                                      |
+| de→en    | 380,988      | FreeDict deu-eng 1.9（517k 词头合并去重）                                                                                   |
+| ja→en    | 465,541      | JMdict_e（keb+reb 双 lemma）                                                                                                |
+| ru→en    | 42,313       | FreeDict rus-eng + curated                                                                                                  |
+| it→en    | 28,305       | FreeDict ita-eng + curated                                                                                                  |
+| fr→en    | 8,260        | FreeDict fra-eng + curated                                                                                                  |
+| es→en    | 4,545        | FreeDict spa-eng + curated                                                                                                  |
+| 非 en→zh | 151-204/语言 | curated-zh.tsv（高频词）+ **英语桥 pivotLookup**（→en 词典 ≥500 词即激活，经 en→zh 转译；用户 2026-11-07 拍板接受转译误差） |
 
 ## §JA 日语分词 wasm 二选一实测（2026-09-12，npm registry）
 
 复现：`npm view lindera-wasm dist.unpackedSize` / `npm pack lindera-wasm --dry-run` /
 `npm view kuromoji dist.unpackedSize dist.fileCount`。
 
-| 方案 | 版本 | tarball（过线） | unpacked | 词典 | 结论 |
-|---|---|---|---|---|---|
-| **lindera-wasm（选用）** | 6.0.0 | **708kB** | **1.8MB**（wasm 1.7MB + JS ~75kB，8 文件） | IPADIC 不随包，需运行时从 `lindera/lindera` GitHub Releases 下载一次（如 `lindera-ipadic-3.0.0.zip`），进 OPFS/IndexedDB 常驻 | ✅ 体积可接受，Rust 维护中，v6 API=`TokenizerBuilder`+`loadDictionaryFromBytes`（见 `ja.mjs:loadLindera`，默认 `normal` mode，details[6] 取基本形） |
-| kuromoji（备选） | 0.1.2 | — | **41.3MB** / 63 文件（含预置词典） | 随包 | ❌ 大一个数量级，加载 ~1–2s，词典年久失修；仅当 wasm 不可用时经动态 import 兜底 |
+| 方案                     | 版本  | tarball（过线） | unpacked                                   | 词典                                                                                                                          | 结论                                                                                                                                                |
+| ------------------------ | ----- | --------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **lindera-wasm（选用）** | 6.0.0 | **708kB**       | **1.8MB**（wasm 1.7MB + JS ~75kB，8 文件） | IPADIC 不随包，需运行时从 `lindera/lindera` GitHub Releases 下载一次（如 `lindera-ipadic-3.0.0.zip`），进 OPFS/IndexedDB 常驻 | ✅ 体积可接受，Rust 维护中，v6 API=`TokenizerBuilder`+`loadDictionaryFromBytes`（见 `ja.mjs:loadLindera`，默认 `normal` mode，details[6] 取基本形） |
+| kuromoji（备选）         | 0.1.2 | —               | **41.3MB** / 63 文件（含预置词典）         | 随包                                                                                                                          | ❌ 大一个数量级，加载 ~1–2s，词典年久失修；仅当 wasm 不可用时经动态 import 兜底                                                                     |
 
 体积可接受性：`708kB` 过线 + IPADIC 一次性缓存 < 语言包 5–10MB 懒加载预算的运行时部分
 （IPADIC 二进制 zip 量级 ~10MB，首次下载后不再过线；精确值以下载的 release 为准，

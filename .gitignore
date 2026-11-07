@@ -18,3 +18,7 @@ playwright-report/
 
 # FreeDict deu-eng 1.9 TEI 430MB — 超 GitHub 100MB 限制，不入库（构建 URL 见 DICT_SOURCES.md）
 packages/dict-tools/raw/de/freedict-deu-eng.tei
+
+# 词典构建产物不入 git（R2 canonical；copy-dict 构建时从 R2 自取；raw dumps 仍在库可复现）
+public/dict/
+packages/web/public/dict/
