@@ -726,11 +726,12 @@ async function fetchDictText(url: string, sameOrigin: boolean): Promise<string |
     if (!res.ok) return null;
     // R2 的 .br 对象可能带 content-encoding: br（浏览器透明解压，text 直接可用），
     // 也可能不带（老对象/回显缺失）——字节嗅探 + DecompressionStream 兜底解压。
+    // 嗅探放行 TSV 合法字节：\t=9、\n=10、\r=13、多释义分隔 \x1f=31、其余可打印/UTF-8。
     if (/\.br$/i.test(url)) {
       const buf = new Uint8Array(await res.arrayBuffer());
       const head = buf.subarray(0, 256);
       const printable = head.every(
-        (b) => b === 9 || b === 13 || b === 10 || (b >= 32 && b < 127) || b >= 128
+        (b) => b === 9 || b === 10 || b === 13 || b === 31 || (b >= 32 && b < 127) || b >= 128
       );
       let text: string;
       if (printable && head.includes(9)) {

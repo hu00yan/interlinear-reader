@@ -16,18 +16,19 @@ const webRoot = join(here, "..");
 const src = join(webRoot, "..", "..", "public", "dict");
 const dst = join(webRoot, "public", "dict");
 const R2_PUBLIC =
-  process.env.VITE_R2_PUBLIC ?? "https://pub-3d23245bf2874c8cbdf740c1d2761ada.r2.dev";
+  process.env.VITE_R2_PUBLIC || "https://pub-3d23245bf2874c8cbdf740c1d2761ada.r2.dev";
 const LANGS = ["en", "de", "fr", "it", "es", "ru", "ja"];
 const TARGETS = ["zh", "en"];
 
 mkdirSync(dst, { recursive: true });
 
 /** R2 .br 对象 → TSV 文本。旧对象可能是未压缩纯文本（2026-09 上传无 content-encoding），
- * 新对象是真 brotli——按可打印性嗅探，不做无谓解压。 */
+ * 新对象是真 brotli——按可打印性嗅探（\t=9 分隔、\x1f=31 多释义分隔、\n=10 换行均合法），
+ * 不做无谓解压；嗅探不过再试 brotli。 */
 function decodeBrObject(buf) {
   const head = buf.subarray(0, 256);
   const printable = head.every(
-    (b) => b === 9 || b === 13 || b === 10 || (b >= 32 && b < 127) || b >= 128
+    (b) => b === 9 || b === 10 || b === 13 || b === 31 || (b >= 32 && b < 127) || b >= 128
   );
   if (printable && head.includes(9)) return buf.toString("utf8");
   return brotliDecompressSync(buf).toString("utf8");
@@ -37,12 +38,19 @@ async function fromR2(lang, target) {
   const url = `${R2_PUBLIC}/dict/${lang}/${target}.dict.br`;
   try {
     const res = await fetch(url);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      if (res.status !== 404) console.warn(`copy-dict: R2 ${lang}/${target} HTTP ${res.status}`);
+      return null;
+    }
     const buf = Buffer.from(await res.arrayBuffer());
     const text = decodeBrObject(buf);
-    if (!text.includes("\t")) return null;
+    if (!text.includes("\t")) {
+      console.warn(`copy-dict: R2 ${lang}/${target} 对象非 TSV（${buf.length}B）`);
+      return null;
+    }
     return text;
-  } catch {
+  } catch (e) {
+    console.warn(`copy-dict: R2 ${lang}/${target} 拉取失败：${String(e).slice(0, 120)}`);
     return null;
   }
 }
