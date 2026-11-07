@@ -1,4 +1,5 @@
 -morfo	-morph-morphic-morphous
+a	toat
 a bruciapelo	point-blank
 a caso	at random
 a chiave	cleché
@@ -43,6 +44,7 @@ abbazia	abbey
 abbellimento	embellishment
 abbellire	embellish
 abbeverare	drink
+abbiamo	have
 abbicci	abc
 abbiente	wealthy
 abbigliamento	clothesclothing
@@ -1253,6 +1255,7 @@ altomedievale	early medieval
 altoparlante	loudspeakerspeaker
 altopiano	plateau
 altrettanto	as
+altro	other
 altrove	elsewhere
 altruismo	altruismunselfishness
 altruistico	altruisticunselfish
@@ -1333,6 +1336,7 @@ americano	American
 americio	americium
 ametista	amethyst
 amianto	asbestosamianthus
+amica	friend (f)
 amichevole	cordialfriendlycongenial
 amichevolmente	chummilyfriendly
 amicizia	friendshipamity
@@ -1664,6 +1668,7 @@ annegare	drown
 annerare	blackendarken
 annerire	blackenbecome black
 annessione	annexation
+anni	years
 annichilimento	annihilation
 annichilire	annihilatediscourage
 annichilito	annihilatedamazedastonishedflabbergasted
@@ -2944,6 +2949,7 @@ avere	haveto havecredithave gotbefeel
 averla	snike
 averroismo	Averroism
 avertere	avert
+aveva	had
 aviatore	airmanaviatorpilot
 aviatorio	airaviationflying
 aviatrice	air-woman
@@ -3454,7 +3460,7 @@ benaccetto	acceptablewelcome
 benda	bandage
 bendare	bandage
 bendato	bandaged
-bene	wellwealth
+bene	wellverywealth
 beneamato	beloveddarlingwell-loved
 benedettino	Benedictine
 benedetto	blessedconsecratedhallowedholy
@@ -5253,7 +5259,7 @@ cfr.	cf.
 cha cha cha	cha-cha
 chance	chance
 charleston	Charleston
-che	who
+che	thatwhichwho
 checche	whatever
 check-point	check-point
 check-up	check-up
@@ -5388,6 +5394,7 @@ chiurlare	hoot
 chiurlo	curlew
 chiuso	closedsettledexclusivereservedcloseenclosure
 chiusura	closingclosureconclusionending
+ci	us
 ciabatta	muleslipperciabatta
 ciabattare	shuffle
 ciabattino	cobblershoe repairerbotcherbungler
@@ -6011,7 +6018,7 @@ combustibile	combustibleinflammable
 combustione	combustionfire
 combusto	burnedburnt
 combutta	collectioncrowdgangmob
-come	howподобно
+come	likehowподобно
 come niente	effortlesslyvery easilywithout hesitation
 comedone	comedo
 cometa	comet
@@ -7467,6 +7474,7 @@ cvd	QED
 cybersesso	cybersex
 cyberspazio	cyberspace
 cyclette	exercise bicycle
+da	from
 dabbenaggine	credulityfoolishnessgullibility
 dabbene	decentrespectable
 dacia	dachadatcha
@@ -8018,7 +8026,7 @@ dettaglio	retaildetailparticular
 dettame	dictateprecept
 dettare	articulatedictateimposeinstructorderprescribe
 dettato	provisionsdictationsawsaying
-detto	above-mentionedaforementionedcalleddubbedknown adsaying
+detto	saidabove-mentionedaforementionedcalleddubbedknown ad
 deturpare	disfigure
 deumidificare	dehumidify
 deumidificatore	dehumidifier
@@ -8046,7 +8054,7 @@ devoniano	Devonian
 devotamente	devoutly
 devoto	committeddedicateddevotedfaithfuldevoutpious
 devozione	devotion
-di	bythanaboutforoffrom
+di	ofbythanaboutforfrom
 di inchiesta	a enquerre
 di nuovo	again
 di persona	oneselfpersonally
@@ -8112,6 +8120,7 @@ dibattimento	debatediscussion
 dibattito	debatediscussion
 diboscare	deforest
 dicastero	ministry
+dice	says
 dicembre	December
 diceria	gossiprumour
 dichiarare	declare
@@ -8127,6 +8136,7 @@ diciottesimo	eighteenth
 diciotto	eighteen
 dicitore	oratorspeaker
 dicitura	wordingwords
+dico	I say
 dicotiledone	dicotyledondicotyledonous
 dicotomia	dichotomy
 dicotomico	dichotomicdichotomous
@@ -8855,6 +8865,7 @@ dongiovanni	Don Juan
 donna	woman
 donna d'affari	businessman
 donnaiolo	philandererplayboywomanizer
+donne	women
 donnicciola	sissy
 donnola	weasel
 dono	giftpresentdonationflairtalent
@@ -8863,6 +8874,7 @@ dopamina	dopamine
 dopante	doping
 dopare	dope
 doping	doping
+dopo	after
 dopo sbornia	hangover
 dopobarba	aftershave
 dopodomani	the day after tomorrow
@@ -8985,7 +8997,7 @@ durkheimiano	Durkheimian
 duro	resistanttoughhardsolid
 duttilita	ductility
 dvd	DVD
-e	and
+e	andis
 e-book	e-book
 e-mail	e-mailemail
 e-reader	e-reader
@@ -9683,8 +9695,9 @@ equivoco	mistakemisunderstanding
 equo	equitablefairjustreasonable
 equocommercio	fairtrade
 equosolidale	fairtradefsira
-era	eratime
+era	waseratime
 eradicare	eradicateuproot
+erano	were
 erariale	fiscalpublicrevenuestatetaxation
 erario	aerariumTreasury
 erasmo	Erasmus
@@ -10238,7 +10251,7 @@ extrasistole	extrasystole
 extraterrestre	extra-terrestrialalienextraterrestrial
 ezechiele	Ezekiel
 eziologia	etiology
-fa	agoF
+fa	doesagoF
 fabbisogno	demandneedsrequirement
 fabbrica	factoryplantworks
 fabbricante	manufacturer
@@ -10254,6 +10267,7 @@ faccia	faceside
 faccia di bronzo	brazen-faced
 facciale	facial
 facciata	appearancesoutsidepagefaçadefrontface
+faccio	do
 faceto	HumouristicJoking
 facezia	jestjokepleasantryquipwitticism
 fachiro	fakir
@@ -10336,6 +10350,7 @@ fanghiglia	squish
 fango	mudslushmiremud bath
 fangoso	mirymuddy
 fangoterapia	mud bath treatment
+fanno	do
 fannullone	idleidlerlazylazybonesloaferslack
 fanone	baleenwhalebone
 fans	NSAID
@@ -10466,7 +10481,7 @@ fattibile	doablefeasiblepossiblepracticableworkable
 fattibilita	feasibilitypracticability
 fattispecie	caseinstance
 fattivo	effectiveefficacious
-fatto	completeddonefact
+fatto	donefactcompleted
 fattore	creatorfarmerland agentmakerstewardcoefficient
 fattore primo	prime factor
 fattoria	farm
@@ -10734,6 +10749,7 @@ fiero	proud
 fievole	faintfeebleweak
 fievolmente	dimlyfaintlysoftly
 figata	awesomecoolsweet
+figlia	daughter
 figliare	breedbring forthgive birthlitter
 figliastro	stepson
 figlio	sonchild
@@ -11263,7 +11279,7 @@ fottere	fuckfuck overhave a screwpinchcheatdo
 fottio	fuckloadfucktonshitload
 fottuto	bloodyfuckingfuckedscrewed
 foxtrot	foxtrot
-fra	amongbetweenwithinin
+fra	betweenamongwithinin
 frac	tailcoat
 fracassare	shattersmash
 fracasso	racketclattercrashdinhubbubhullabaloo
@@ -12042,6 +12058,7 @@ giornalistico	journalistic
 giornalmente	daily
 giornaluccio	rag
 giornata	day
+giorni	days
 giorno	daydaytime
 giostra	carouselmerry-go-roundride
 giosue	Joshua
@@ -12156,6 +12173,7 @@ glasnost	glasnost
 glassa	glaze
 glaucoma	glaucoma
 gleba	clod
+gli	the (plural)
 gliadina	gliadine
 gliale	glial
 glicano	glycan
@@ -12586,12 +12604,15 @@ gusto	tasteflavourflavorliking
 gustoso	tasty
 guttaperca	gutta-percha
 gutturale	guttural
+ha	has
 habitat	habitat
+hai	have
 haitiano	Haitian
 halakhah	Halakha
 hallo	hallo
 hamburger	hamburgerpatty
 handicappare	handicap
+hanno	have
 hannover	Hanover
 harem	harem
 hassio	hassium
@@ -12607,6 +12628,7 @@ hinterland	hinterland
 hippie	hippiehippy
 hipster	Hipsterhipster
 hitleriano	HitlerianHitlerite
+ho	have
 hobby	hobby
 hockey	hockey
 hockey su ghiaccio	ice hockey
@@ -12777,6 +12799,7 @@ igrofilo	hygrophilous
 igrometria	hygrometry
 igrometrico	igrometric
 iguana	iguana
+il	the
 il cairo	Cairo
 ilare	cheerful
 ilaria	HilaryHillaryIlary
@@ -13184,6 +13207,7 @@ imputabile	ascribableattributablechargeabledueimputable
 imputare	accuseascribeattributechargeimpute
 imputato	accusedcharged
 imputazione	accusationallocationchargeimputation
+in	in
 in banda	in bend
 in costruzione	under construction
 in prima persona	oneselfpersonally
@@ -14344,6 +14368,7 @@ invasore	attackerinvaderinvadingraider
 invecchiamento	ageingagingdating
 invecchiare	grow oldagemature
 invecchiato	agedmatureobsoleteold-fashionedolder-lookingout-of-date
+invece	instead
 inveire	inveighrail
 inventare	deviseinvent
 inventario	inventory
@@ -14953,6 +14978,7 @@ lazio	Latium
 lazzaretto	lazaretlazarettelazaretto
 lazzarista	Lazarist
 lazzarone	lazzaroneruffianscoundrelgood-for-nothinglayaboutslacker
+le	the (plural)
 leader	leader
 leale	faithfulhonestloyalsincere
 lealismo	loyalism
@@ -15023,7 +15049,7 @@ legno	woodwoodwind instrument
 legnoso	ligneouswoodenwoody
 leguleio	pettifogger
 legume	legumepod
-lei	youshe
+lei	sheyou
 leibniziano	Leibnizian
 lembo	hemstripconeredgebladelamina
 lemma	lemma
@@ -15114,7 +15140,7 @@ lezione	lessonclasslecture
 leziosita	affectation
 lezioso	affected
 ləi	they
-li	there
+li	themthere
 liasi	lyase
 libanese	Lebanese
 libano	Lebanon
@@ -15321,6 +15347,7 @@ livido	palebluishlividbruise
 livore	bitternessenvygalljaundicejealousymalice
 livorno	LeghornLivorno
 lizza	lists
+lo	the
 lobato	lobate
 lobbycrazia	lobbying
 lobo	lobe
@@ -15400,6 +15427,7 @@ lordosi	lordosis
 lordura	dirtinessobscenity
 lorena	Lorraine
 loris	Loris
+loro	they
 losanga	lozenge
 losanga forata	rustrelozenge round-pierced
 losanga vuota	masclelozenge voided
@@ -15446,6 +15474,7 @@ ludologia	ludology
 ludopatia	ludopathy
 luglio	July
 lugubre	dismalfunerealgloomygrim
+lui	he
 luigia	Luigia
 luisa	Luisa
 lumaca	snailslug
@@ -15500,6 +15529,7 @@ lutezio	lutetium
 lutto	mourninggriefsorrow
 luttuosamente	mournfullysorrowfully
 luttuoso	mournfulsadsorrowfultragic
+ma	but
 macabro	grimmacabre
 macaco	macaque
 macao	Macaumacaomakao
@@ -16503,7 +16533,7 @@ mezzogiorno	middaynoon
 mezzorado	yogurt
 mezzosangue	half-breedhalf-caste
 mezzosoprano	mezzo-soprano
-mi	Eme
+mi	meE
 mi scusi	excuse me
 miao	meowmiaowmeumew
 mica	certainlybreadcrumbmica
@@ -16866,7 +16896,7 @@ moltiplicarsi	breedgrowmultiplyprocreate
 moltiplicato	multiplied
 moltiplicazione	multiplication
 moltitudine	multitudehostthrong
-molto	verya lota lot ofmuchvery muchoften
+molto	verymucha lota lot ofvery muchoften
 momentaneo	briefmomentaryshort-livedprovisionaltemporary
 momento	momentsituationinstantsecond
 monaca	nun
@@ -17775,6 +17805,7 @@ nuvola digitale	cloudcloud computing
 nuvolosita	cloudiness
 nuvoloso	cloudyovercastdarksomber
 nylon	nylon
+o	or
 oasi	oasishaven
 obbedienza	obedience
 obbedire	obey
@@ -18104,7 +18135,7 @@ opulento	opulentrichwealthyfullgenerousoverelaborate
 opulenza	abundanceopulencerichnessbuxomnessfullnesslushness
 opzionale	optional
 opzione	choiceoption
-ora	hour
+ora	nowhour
 oracolo	oracle
 orafo	goldsmithgoldsmith's
 orale	verbal
@@ -18479,7 +18510,7 @@ paesaggio	landscapescenerypanoramaview
 paesaggista	landscapist
 paesaggistico	landscapepanoramic
 paesano	village
-paese	countrylandnationstatevillagetown
+paese	countryvillagelandnationstatetown
 paesi bassi	Netherlands
 paffuto	chubbyplump
 paga	payremunerationsalaryreward
@@ -19136,7 +19167,7 @@ peptico	peptic
 peptide	peptide
 peptidico	peptidic
 peptidoglicano	peptidoglycan
-per	throughaboutaroundfortoby
+per	forthroughaboutaroundtoby
 per favore	please
 per mille	per milpermillepermilper mill
 per piacere	please
@@ -19151,7 +19182,7 @@ percettibile	detectablenoticeableperceptible
 percettivamente	perceptually
 percettore	collectorreceiver
 percezione	perceptionsensefeelingnotion
-perche	whybecause
+perche	becausewhy
 percio	therefore
 percorrere	coversweeptraveltraverse
 percorribile	accessiblewalkable
@@ -19602,6 +19633,7 @@ pittore	painter
 pittoresco	picturesquequaintquirky
 pittura	paintingpicture
 pituitario	pituitary
+piu	more
 piu o meno	approximatelyaroundmore or less
 piuccheperfetto	past perfectpluperfect
 piuma	feather
@@ -19997,6 +20029,8 @@ possesso	ownershippossessionestatemasteryproperty
 possibile	achievabledoablefeasiblepossible
 possibilista	possibilistpossibilistic
 possibilita	possibilitylikelihoodmeansprospectresourceschance
+posso	I can
+possono	can
 post-verita	post-truth
 posta	placepostestablished
 posta elettronica	eletronic mailemail
@@ -20332,6 +20366,7 @@ price earning	price earning
 prigione	prisonjailgaolimprisonment
 prigionia	captivitydetentionimprisonmentincarcerationenslavement
 prigioniero	captivecapturedimprisonedjailed
+prima	beforefirst
 prima persona	first personfirst-person
 primariamente	primarily
 primario	chiefgreatleadingprimaryagricultural
@@ -20910,6 +20945,7 @@ punzecchiare	biteprickstingtaunttease
 punzecchiatura	prickpricking
 punzonatura	punchingstamping
 punzone	punchstamp
+puo	can
 pupazzo	dollpuppetpawnstooge
 pupazzo di neve	snowman
 pupillo	wardprotégépupildarling
@@ -20986,6 +21022,7 @@ qualsivoglia	any
 qualunque	anycommoneacheveryordinarywhatever
 qualunquismo	qualunquismo
 qualunquista	apolitical
+quando	when
 quantico	photometryquantum
 quantificabile	quantifiable
 quantificare	assesscalculatequantify
@@ -21014,7 +21051,7 @@ quartier generale	headquarters
 quartiere	quarterapartmentflat
 quartina	quatrain
 quarzo	quartz
-quasi	aboutjustalmostmaybenearlyperhaps
+quasi	almostaboutjustmaybenearlyperhaps
 quasi anteriore	near-front
 quasi posteriore	near-back
 quasigruppo	quasigroup
@@ -21037,6 +21074,7 @@ quesito	queryquestion
 questionario	questionnaire
 questione	questionissuematter
 questione di principio	question of principle
+questo	this
 questore	quaestor
 questua	collectionoffertoryquest
 questura	police forcepolice headquartersquaestura
@@ -22520,6 +22558,7 @@ ruvido	coarsebrusqueroughrude
 ruzzolare	roll
 ruzzolata	tumble
 ruzzolone	tumble
+sa	knows
 sabato	Saturday
 sabbia	sandgravel
 sabbiato	dullsandblasted
@@ -23479,7 +23518,7 @@ seguace	adherentbelieverdisciplefollowerpartisanvotary
 segugio	bloodhoundsleuth-houndsleuth
 seguire	follow
 seguito	entourageretinuesuitecontinuationfollowersrest
-sei	Dsix
+sei	areDsix
 seicelle	Seychelles
 seicento	seicentosix hundred
 selce	flint
@@ -23908,8 +23947,9 @@ shiftare	shift
 shintoismo	ShintoShintoism
 shopping	shopping
 show	show
-si	yesyeah
+si	oneselfyesyeah
 sia	both
+siamo	are
 siberia	Siberia
 siberiana	Siberian
 siberiane	Siberian
@@ -23944,6 +23984,7 @@ sieroproteina	seroprotein
 sieroreazione	seroreaction
 sieroso	serous
 siesta	napsiesta
+siete	are
 sifilide	syphilispox
 sifone	syphon
 sigaretta	cigarettereelspool
@@ -24216,6 +24257,7 @@ snodato	articulatedjointedlooseundoneunknotteduntied
 snodo	intersectionjunction
 snowboard	snowboard
 snowboardista	snowboarder
+so	I know
 soave	gentlemilddelicatelightsuavesweet
 sobbalzare	jerkjoltjumpflinch
 sobbarcare	burden
@@ -24445,6 +24487,7 @@ sonnellino	nap
 sonno	sleep
 sonnolento	drowsylethargicsleepyinerttorpid
 sonnolenza	drowsinesssleepiness
+sono	are
 sonorita	fullnessrichnesstexturewarmth
 sonorizzazione	voicingaddition
 sonoro	loudnoisyresonantresoundingsonorous
@@ -24800,7 +24843,7 @@ sperpero	squanderingwaste
 spersonalizzare	depersonalize
 spesa	expenditurespending
 speso	spent
-spesso	densethickcrowdedoftenfrequently
+spesso	oftendensethickcrowdedfrequently
 spessore	thickness
 spettacolare	extraordinaryfantasticmagnificentspectacularunusual
 spettacolarita	spectacularity
@@ -25132,7 +25175,7 @@ statistica matematica	mathematical statistics
 statistica medica	medical statistics
 statistica multivariata	multivariate statistics
 statistico	statisticalstatistician
-stato	state
+stato	beenstate
 stato civile	vital record
 stato della materia	state
 stato di diritto	state of law
@@ -25218,6 +25261,7 @@ sterrato	dirtunpaved
 sterro	earthwork
 sterzare	steerturn
 steso	lyingstretched
+stessa	same
 stesso	sameone
 stetoscopio	stethoscope
 stia	chicken-coop
@@ -25567,7 +25611,7 @@ sumo	sumo
 sundanese	Sundanese
 sunnominato	aforesaid
 sunto	recapsummary
-suo	herhis
+suo	hisher
 suocero	father-in-law
 suolare	sole
 suolo	groundearth's surface
@@ -26210,7 +26254,7 @@ ternario	ternary
 terno	tern
 teropodi	theropods
 terotecnologia	terotecnology
-terra	Earthsoilearthlandagerpraedium
+terra	earthEarthsoillandagerpraedium
 terracotta	terracottaclayearthenwarepottery
 terraferma	mainlanddry landlandterra firma
 terranova e labrador	Newfoundland and Labrador
@@ -26332,6 +26376,7 @@ texas	Texas
 thai boxe	muay thai
 thailandese	Thai
 thailandia	Thailand
+ti	you
 tiara	tiarapapal tiara
 tiaso	thiasus
 tiazolidinedione	thiazolidinedione
@@ -27225,8 +27270,8 @@ umore vitreo	vitreous humorvitreous humour
 umorismo	humorhumour
 umorista	humorist
 umoristico	humorous
-un	aan
-una	oneone o'clock
+un	aonean
+una	aoneone o'clock
 unanime	unanimous
 unanimita	unanimity
 unbinilio	unbinilium
@@ -27278,10 +27323,11 @@ universitario	universityacademic
 universo	universepopulationwolrld
 univocita	univocityunivocality
 univoco	univocal
-uno	aanone
+uno	aonean
 unto	greasedoiledgreasy
 untuoso	fattygreasyoilyunctuous
 ununennio	ununennium
+uomini	men
 uomo	manhuman
 uomo d'affari	businessman
 uopo	necessityneed
@@ -27371,6 +27417,7 @@ uva	grape
 uvaggio	mixed vintage
 uxoricidio	uxoricide
 uzbekistan	Uzbekistan
+va	goes
 vacanza	holidayferiaevacuĭtas
 vacca	cow
 vaccinare	inoculatevaccinate
@@ -27382,6 +27429,7 @@ vacillare	faltershakeswayvacillatewaver
 vacuo	emptyfrivolousinanevacuous
 vacuolo	vacuole
 vademecum	handbookmanualvade-mecum
+vado	go
 vagabondaggio	vagrancy
 vagabondo	homelessroverrovingvagabondvagrantwanderer
 vagamente	hazilyvaguely
@@ -27471,6 +27519,7 @@ vanificare	thwart
 vanillina	vanillin
 vanita	futilityvanityworthlessnessuselessnessvainness
 vanitoso	vainconceited
+vanno	go
 vano	emptyfrivolousgroundlessidleunsubstantiateduseless
 vantaggio	emolumentumadvantagelead
 vantaggiosamente	advantageouslyfavourably
@@ -27716,7 +27765,7 @@ versatilita	hyperplasia
 versato	preparedversedwell-versed
 versi	downwards
 versione	translationversion
-verso	versesensereversetowardcry
+verso	towardsversesensereversetowardcry
 versoio	mouldboard
 versore	Unit vector
 vertebra	vertebra
@@ -27778,6 +27827,7 @@ vetusto	ancient
 vezzeggiativo	endearingpamperingterm of endearmentpet name
 vezzo	affectation
 vezzoso	affectedcharmercharminglovely
+vi	you
 via	away
 viabilita	practicability
 viadotto	viaduct
@@ -27843,6 +27893,8 @@ videotelefonico	videotelephonic
 videotelefono	videotelephone
 videoterminale	video terminal
 vidimare	authenticatecertify
+viene	comes
+vieni	come (tu)
 vienna	Vienna
 viennese	ViennaVienneseviennese
 vietare	banforbidpreventprohibitstop
@@ -28025,6 +28077,7 @@ vociferare	rumour
 vodka	vodka
 voga	rowingin fashionin vogue
 voglia	wish
+voglio	I want
 voglioso	desirouseagerlongingwillingwishful
 voi	you
 voivoda	voivode
@@ -28106,6 +28159,7 @@ vulnerabilita	vulnerability
 vulnologia	vulnology
 vulva	vulva
 vulvovaginite	vulvovaginitis
+vuole	wants
 vuotato	voided
 vuoto	emptyvacuumgapvacancyvacant
 vuvuzela	vuvuzela

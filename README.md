@@ -22,9 +22,9 @@ as the real mitigation. See
 
 ## 生词本导出
 
-**JSON 导出免费；TSV（Anki）导出为付费功能，需有效 License。** 在 **生词** 页点击 **导出 TSV（Anki）· 需 License**，在展开的面板输入 License 并点击 **校验**。License 离线验签，保存在当前站点的浏览器本地存储，刷新后仍可用；过期后需续期。
+**JSON 导出免费；.apkg（Anki 原生卡包）与 TSV 导出为付费功能，需有效 License。** 在 **生词** 页点击 **导出 .apkg（Anki）** 或 **导出 TSV（Anki）· 需 License**，首次会展开 License 面板，输入 License 并点击 **校验**。License 离线验签，保存在当前站点的浏览器本地存储，刷新后仍可用；过期后需续期。
 
-`vocab.tsv` 是 UTF-8 纯文本，每行依次为 `lemma`、`lang`、`gloss`、`sentence`、`addedAt`（UTC ISO）、`known`、`tags`，以制表符分隔，无表头。Anki 导入时选择制表符分隔，将第七列映射为标签，并关闭 **允许在字段中使用 HTML**。制表符和换行转为空格，其他控制字符移除；标签为 `ilr lang:{lang}`。本版本不生成 `.apkg`，不包含音频、图片或书名标签。
+`.apkg` 是 Anki 原生格式：下载后桌面版 Anki 双击导入（手机版传入后打开即可），自动建立「Interlinear Reader 生词本」牌组，每张卡正面单词、背面释义+原句，自带 `ilr lang::<语言>` 标签。TSV（`vocab.tsv`）是 UTF-8 纯文本兜底：每行依次为 `lemma`、`lang`、`gloss`、`sentence`、`addedAt`（UTC ISO）、`known`、`tags`，以制表符分隔，无表头。Anki 导入时选择制表符分隔，将第七列映射为标签，并关闭 **允许在字段中使用 HTML**。制表符和换行转为空格，其他控制字符移除。
 
 License 校验需要支持 Ed25519 的浏览器和 HTTPS（本地可用 localhost）。不支持时页面显示升级提示，JSON 导出不受影响。管理员签发步骤见 [License CLI 指南](packages/license-cli/README.md)，设计与验证见 [TSV 导出记录](docs/research/license-tsv-export.md)。
 

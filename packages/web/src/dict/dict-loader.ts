@@ -905,6 +905,20 @@ async function realLookup(
     const hit = data?.get(key)?.[0] ?? null;
     if (hit) return hit;
   }
+  // 德语闭合复合词右端兜底（Videospiele→Spiele、Wasserfall→Fall）：词典无整词时，
+  // 从右往左找最长已收录后缀成员——德语复合词语义头落在最后一个成员上，故
+  // 「最长右成员」的释义就是最接近整词的释义。长度护栏（整词≥8、成员≥4）防误配；
+  // 候选必须真实存在于词典（data.get 命中才算），造不出的形自然落选。
+  if (lang === "de") {
+    const w = keys[0];
+    if (w && w.length >= 8 && !w.includes("-")) {
+      for (let i = 1; i <= w.length - 4; i++) {
+        const member = w.slice(i);
+        const hit = data?.get(member)?.[0] ?? null;
+        if (hit) return hit;
+      }
+    }
+  }
   return null;
 }
 
@@ -925,6 +939,19 @@ async function realLookupAll(
       if (g && !out.includes(g) && out.length < 6) out.push(g);
     }
     if (out.length > 0) break; // 首个命中的键即定（与单注同一答案，不抢答）
+  }
+  if (out.length === 0 && lang === "de") {
+    // 与 realLookup 同一口径的复合词右端兜底：点词详情与行间释义一致。
+    const w = keys[0];
+    if (w && w.length >= 8 && !w.includes("-")) {
+      for (let i = 1; i <= w.length - 4; i++) {
+        const hit = data?.get(w.slice(i))?.[0] ?? null;
+        if (hit) {
+          out.push(hit);
+          break;
+        }
+      }
+    }
   }
   return out;
 }

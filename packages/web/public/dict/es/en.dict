@@ -191,7 +191,7 @@ aguja	needle
 agujero	hole
 ah	ahahaoh
 ahogarse	drown
-ahora	at presentnowcurrentlynowadaysthesedays
+ahora	nowat presentcurrentlynowadaysthesedays
 ahora mismo	at onceimmediatelyjustright awayrightnow
 ahumado	smoked
 aire	air
@@ -201,6 +201,7 @@ aislamiento	insulationisolationseparation
 aji	chilli
 ajuar	furniture
 ajustar	makeacontractadjust
+al	to the
 al amanecer	atdaybreak
 al contrario	reversereversed
 al dia	aday
@@ -310,7 +311,7 @@ americana	jacketAmerican woman
 americano	AmericanUS citizen
 amerindio	IndianAmerican Indian
 amianto	asbestos
-amiga	friend
+amiga	friend (f)friend
 amigo	friend
 amistad	friendship
 amnistia	act of graceamnesty
@@ -355,7 +356,7 @@ animacion	encouragement
 animal	animalbeast
 animar	encourageimpelinstigatespur onstimulateurge
 anis	anise
-ano	anusarseyear
+ano	yearanusarse
 ano bisiesto	leap‐year
 ano nuevo	NewYear'sDay
 anoche	lastnight
@@ -426,6 +427,7 @@ aprovisionamiento	arrivalarrivalssupply
 aproximadamente	aboutapproximately
 aproximarse	advancecome closecome closercomeon
 apuntar	notemake a notewritedown
+aquel	that
 aquisgran	Aix‐la‐Chapelle
 arabe	ArabianArabicArab
 arabesco	arabesque
@@ -737,7 +739,7 @@ biblia	Bible
 biblioteca	library
 bicarbonato	bicarbonateofsoda
 bicicleta	bikecyclebicycle
-bien	okaywell
+bien	wellveryokay
 bienvenida	welcome
 bife	steakbeefsteak
 biftec	steakbeefsteak
@@ -820,6 +822,7 @@ bruselas	Brussels
 brusko	brutalgruffharshroughsoursurly
 bucear	diveplungesink
 buen	good
+buena	good (f)
 buenas noches	goodnight
 buenas tardes	goodevening
 bueno	goodniceokayfineskeptical
@@ -1107,7 +1110,7 @@ ciclo	cycle
 ciclomotor	moped
 ciclon	cyclone
 ciego	blind
-cielo	heavensky
+cielo	skyheaven
 ciencia	science
 ciento	hundredonehundred
 ciertamente	certainly
@@ -1222,7 +1225,7 @@ comision	commission
 comite	committee
 comitiva	procession
 communicacion	accountcommunication
-como	howinwhatway
+como	likehowinwhatway
 como es debido	decentlyproperly
 como si	as ifas thoughinaway
 comodo	homycloseintimate
@@ -1429,6 +1432,7 @@ cruz	cross
 cruz roja	RedCross
 cuadra	stablestallsty
 cuadro	bedpaintingpicture
+cuando	when
 cuartel	barracks
 cuarto	apartmentflatfourthchamberroom
 cuarto de bano	bathroom
@@ -1552,6 +1556,7 @@ definir	definedetermine
 dejar	allowleaveletreleaseleavebehind
 dejar en pos	leavebehind
 dejo	accent
+del	of the
 delante	aheadformerlypreviously
 delante de	beforeinfrontof
 delatar	accusedenounce
@@ -1623,7 +1628,7 @@ descubrir	discoveruncover
 descuento	abatementdiscountrebate
 descuidado	carelessnegligent
 descuidar	neglect
-desde	fromsince
+desde	sincefrom
 desear	achedesirewish
 desechos	clippingscuttingsparingsrefuserubbishwaste
 desembarcadero	landing‐stagepier
@@ -1706,9 +1711,10 @@ diametro	diameter
 diariamente	daily
 diario	daily
 diarrea	diarrhoea
+dias	days
 dibujar	designdraw
 diccionario	dictionaryvocabulary
-dicho	concernedinquestion
+dicho	saidconcernedinquestion
 diciembre	December
 dieciocho	eighteen
 diestro	adroitcleverdexterousskillful
@@ -1803,6 +1809,7 @@ dudar	doubt
 dueno	bosschiefleadermasterowner
 dueno de si mismo	composedrestrainedself‐possessed
 dulce	gentlesoftsweettenderdelicacytidbit
+durante	during
 durar	continueendurekeep onlast
 duro	hardleather
 dyschatell	couchdivan
@@ -1839,7 +1846,9 @@ elefante	elephant
 elegante	elegantchic
 elegir	chooseelectpickout
 elevacion	altitudeheight
-ella	hershe
+ella	sheher
+ellas	they
+ellos	they
 embajada	embassy
 embajador	ambassadoremissaryenvoymessenger
 embalsamar	embalm
@@ -1962,6 +1971,8 @@ equipajes	baggageluggage
 equis	X
 equivocacion	aberrationerrormistake
 equivocarse	errmakeamistake
+era	was
+eres	are
 error	aberrationerrormistake
 es decir	thatis
 es una lastima	alasregrettablyunfortunatelythat's too badwhatapity
@@ -2024,7 +2035,7 @@ esqui	ski
 esquiar	ski
 esquimal	Eskimo
 esquina	corner
-esta	thesethisthishere
+esta	isthesethisthishere
 esta manana	thismorning
 esta tarde	thisevening
 establo	stablestallsty
@@ -2034,6 +2045,7 @@ estacion de servicio	fillingstation
 estado	state
 estados unidos	United States of AmericaUSA
 estafar	fleece
+estan	are
 estandarte	flagstandard
 estano	tin
 estanque	pond
@@ -2055,6 +2067,7 @@ estomago	stomach
 estonia	Estonia
 estorbar	barinhibitpreventhinder
 estornudar	sneeze
+estoy	amat
 estrasburgo	Strasbourg
 estrecho	narrowclosecrampedstrait
 estrecho de gibraltar	StraitofGibraltar
@@ -2220,6 +2233,7 @@ fronton	façadefrontbattlefrontfrontage
 frotar	rub
 fruta	fruit
 frutal	fruit‐tree
+fue	was
 fuego	fire
 fuente	fountainsourcespringbasinbowlpelvis
 fuera	abroadoutoutside
@@ -2342,8 +2356,10 @@ guisante	pea
 gusano	worm
 gustar	pleaseappreciatelike
 gusto	taste
+ha	has
 haba	bean
 haber	haveto havecredit
+habia	had
 habil	experiencedexpertskilfulskilledskillfulpractised
 habilidad	ability
 habitacion	chamberroom
@@ -2351,8 +2367,10 @@ habitante	inhabitant
 habitar	dwelllive
 habituarse	accustom oneselfgetused
 hablar	speakto speaktalk
+hace	doesago
 hace ...	...ago
 hace poco	justjustnow
+hacen	do
 hacer	maketo doachieveactdoperform
 hacer dimision	quitresign
 hacer incribir	register
@@ -2362,11 +2380,14 @@ hacer uso de	employusemakeuseof
 hacerse	becomecome aboutgrowhappenget
 hacha	axe
 hacia atras	backwardbackwards
+hago	do
 halcon	falcon
 hallar	come acrossencountermeetseefind
 hallarse	be foundbe locatedfindoneself
 hambre	famehearsayrenownreputerumorrumour
+han	have
 harina	flourmeal
+has	have
 hasta la vista	byegoodbyesolong
 hasta luego	byegoodbyesolong
 hasta que	untiltill
@@ -2375,10 +2396,11 @@ hay	there isthereare
 haya	beech
 haz el favor	please
 haz favor	please
+he	have
 hebilla	buckle
 hebraico	HebrewJewishJew
 hebreo	HebrewJewishJewIsraelite
-hecho	fact
+hecho	donefact
 hectolitro	hectolitre
 helada	freezing coldfrost
 hemorroides	haemorhoids
@@ -2463,6 +2485,7 @@ idea	ideaconcept
 ideal	ideal
 idem	equallylikewise
 identificar	identify
+ido	gone
 idolatria	idolatryidolworship
 idolo	idol
 iglesia	churchchurch‐buildinghouse of worshipplaceofworship
@@ -2769,7 +2792,7 @@ londinense	Londoner
 londres	London
 lorena	LorraineLothringen
 loro	parrot
-los	the
+los	the (plural)the
 los dos	both
 los paises bajos	Hollandthe Netherlands
 lovaina	Louvain
@@ -2792,7 +2815,7 @@ luz trasera	rear‐lamprear‐lighttail‐light
 macarrones	macaroni
 maciso	massive
 madera	timberwood
-madre	bedwatercoursemother
+madre	motherbedwatercourse
 madrid	Madrid
 maduro	matureripe
 maestra	teacherfemaleteacher
@@ -2864,7 +2887,7 @@ martes	Tuesday
 martes de carnestolendas	Shrove‐Tuesday
 martillo	hammer
 marzo	March
-mas	butmore
+mas	morebut
 mas adelante	afterwardsnextsubsequently
 mas bien	preferablyrather
 mas y mas	increasinglymoreandmore
@@ -2883,6 +2906,7 @@ maximo	maximum
 maximum	maximum
 mayo	May
 mayoria	majority
+me	me
 mear	urinate
 mecanico	mechanicchauffeurdriver
 mecanografa	stenotypistfemalestenotypist
@@ -2914,7 +2938,7 @@ mendigar	beg
 mendigo	beggar
 menesteroso	abjectdismalmeagermiserablewretchedneedy
 menguar	abatedecreasediminishdropfall
-menos	apart frombutexceptotherthanfewerless
+menos	lessapart frombutexceptotherthanfewer
 menos y menos	lessandless
 mensaje	errandmessage
 mensualmente	monthly
@@ -2956,11 +2980,12 @@ minuto	minute
 miope	near‐sightedshort‐sighted
 mirada	look
 mirlo	blackbird
+mis	my
 misa	mass
 miserable	miserablepoorabjectdismalmeagerwretched
 misericordia	charitymercifulnessmercy
 misericordioso	charitablemerciful
-mismo	even
+mismo	sameeven
 mito	myth
 mitologia	mythology
 mitra	mitermitre
@@ -2979,7 +3004,7 @@ moler	grindpulverize
 molestar	botherdisturbhindertrouble
 molestia	hindrancedisquietdisturbanceinterferenceunresttrouble
 momentito	instantmoment
-momento	instantmoment
+momento	momentinstant
 mondar habas	string
 moneda	coin
 monedas	change
@@ -3040,7 +3065,7 @@ museo	museum
 musica	music
 musico	musician
 muslo	thigh
-muy	quiteveryverymuch
+muy	veryquiteverymuch
 nabo	turnip
 nacer	arisebeborn
 nacimiento	birth
@@ -3114,8 +3139,9 @@ norte	northNorth
 norteamerica	NorthAmerica
 noruega	NorwayNorwegianwoman
 noruego	Norwegian
+nos	us
 nosotras	uswe
-nosotros	uswe
+nosotros	weus
 nostalgia	nostalgia
 notable	considerablesizable
 notar	notemake a notewritedown
@@ -3131,6 +3157,7 @@ novio	belovedloved oneloversweetheartwell‐beloved
 nube	cloud
 nudo	knotnode
 nuestra senora	OurLady
+nuestro	our
 nueva	new
 nueva gales del sur	NewSouthWales
 nueva york	New AmsterdamNew YorkNewYorkCity
@@ -3463,7 +3490,7 @@ poblacion	populationfolknationpeoplecitytown
 pobre	miserablepoorabjectdismalmeagerwretched
 pobreza	poverty
 pobrezo	misery
-poco	a littlerathersomesomewhattosomeextentlittle
+poco	littlea littlerathersomesomewhattosomeextent
 poco a poco	graduallylittlebylittle
 podadera	billpruning‐knife
 podadera de mango largo	polepruner
@@ -3632,6 +3659,9 @@ publicar	advertiseannouncegivenoticepublishrevealacquaint
 pudin	pudding
 pueblecito	hamlettownship
 pueblo	folknationpeoplevillage
+puede	can
+pueden	can
+puedo	I can
 puente	bridge
 puerta	gategatewayportaldoor
 puerta trasera	back‐door
@@ -3658,7 +3688,7 @@ puro	pure
 pus	pus
 puta	hookerwhore
 putrefaccion	corruptiondecaydepravationtaint
-que	thatthan
+que	whatthatthan
 quebraja	crackcreviceburstflaw
 quebrar	break
 quedar	meetbesituated
@@ -3674,6 +3704,9 @@ querer	wantto wantlovedesirewish
 querer decir	aimintendmean
 querido	belovedloved oneloversweetheartwell‐belovedbest
 queso	cheese
+quien	who
+quiere	wants
+quiero	I want
 quieto	calmquiet
 quimica	chemistry
 quimico	chemist
@@ -3895,6 +3928,7 @@ rusia	Russia
 ruso	Russian
 ruta	route
 sabana	sheet
+sabe	knows
 saber	knowto knowknowhow
 sabido	well‐known
 saborear	taste
@@ -3940,6 +3974,7 @@ satan	LuciferSatan
 satanas	LuciferSatan
 satelite de la tierra	earthsatellite
 sauce	willow
+se	oneselfI know
 secar	dry
 seccion	section
 seco	dry
@@ -3999,12 +4034,13 @@ sevilla	Seville
 sexo	sex
 sexto	sixth
 sexual	generativesexual
-si	aslikesuchasifprovidedthatyes
+si	ifaslikesuchasprovidedthatyes
 siberia	Siberia
 siberiana	Siberian
 siberiano	Siberian
+sido	been
 sidra	cider
-siempre	constantlycontinuallycontinuouslyalwaysever
+siempre	alwaysconstantlycontinuallycontinuouslyever
 sien	temple
 sierra	mountainchainchain of mountainsmountain chainmountain rangerandsaw
 siete	seven
@@ -4041,6 +4077,8 @@ solterona	unmarried womanspinster
 sombra	shadowshade
 sombrero	hat
 somero	shallowsuperficial
+somos	are
+son	are
 sonar	dream
 sonido	sound
 sonreir	smile
@@ -4058,7 +4096,8 @@ sospechar	suspect
 sosten	bra
 sostener	abetsupportsustain
 sotano	basementcellar
-su	herhisitstheir
+soy	am
+su	hisheritstheir
 subasta	tender
 subir	ascendget upgo upliftrisearise
 subir a	ascendclimbscale
@@ -4096,6 +4135,7 @@ suponer	guesspresumesupposesurmise
 sur	south
 surinam	Surinam
 surtido	assortment
+sus	his
 suscribirse	subscribesubscribeto
 suscripcion	subscription
 suscriptor	subscriber
@@ -4136,7 +4176,7 @@ tapizar	paper
 tapon	hub‐cap
 taquilla	windowticket‐window
 tardar	be kept inbe detainedremainstayon
-tarde	afternoonevening
+tarde	afternoonlateevening
 tardio	latetardy
 tarjeta	cardmapmenupostcard
 tarjeta de credito	creditcard
@@ -4146,7 +4186,7 @@ tarta de manzana	apple‐tart
 tasa	assessment
 taxi	taxi
 taza	cup
-te	tea
+te	youtea
 teatro	theatre
 teatro de varietes	varietyentertainment
 tecnica	technicstechnique
@@ -4175,6 +4215,7 @@ tener lugar	come abouthappenoccur
 tener puesto	wear
 tener que	have tomustought toshould
 tenga	beholdhere ishere arelookthere
+tengo	I have
 tenir	dyetint
 tenis	tennis
 tension	tension
@@ -4206,6 +4247,8 @@ tiburon	shark
 tiempo	timeweatherwhile
 tienda	boutiqueshopstore
 tienda de campana	tent
+tiene	has
+tienen	have
 tierno	soft
 tierra	earthlandsoil
 tigre	tiger
@@ -4228,9 +4271,10 @@ toalla	towel
 tobillo	ankle
 tocar	touchuponplaysoundtouch
 tocino	bacon
+toda	all
 toda clase de	alleverykindofall sortsall sorts ofmiscellaneousofallsorts
 todavia	stillyet
-todo	entireoverallwholeallaltogethereverything
+todo	allentireoverallwholealtogethereverything
 todopoderoso	almightyall‐powerfulomnipotent
 todos	all
 todos los santos	All HallowsAllSaints'DayAllSouls'Day
@@ -4304,7 +4348,7 @@ trono	throne
 trozo	slice
 trucha	trout
 trueno	thunder
-tu	yourthouyou
+tu	youyourthou
 tubo receptor	cathodetube
 tuerca	nut
 tumba	gravetomb
@@ -4348,6 +4392,7 @@ usted	thouyouye
 ustedes	yeyou
 utero	uteruswomb
 uva	grape
+va	goes
 vaca	cow
 vacaciones	vacation
 vaciar	emptybottle
@@ -4365,6 +4410,7 @@ valorar en	blameholdagainst
 valuta	currency
 valvula	tubevalve
 vampiro	vampire
+van	go
 variar	vary
 variedad	variety
 varios	several
@@ -4427,6 +4473,7 @@ vida	life
 vidrio	glass
 viejo	old
 viena	Vienna
+vienen	come
 viento	wind
 vientre	abdomenbellytummy
 viernes	Friday
@@ -4459,6 +4506,7 @@ vomitar	throw upvomit
 vosotras	you
 vosotros	you
 votar	vote
+voy	go
 voz	voice
 vuelo	flight
 xilofono	xylophone

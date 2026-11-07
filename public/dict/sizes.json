@@ -41,102 +41,102 @@
   },
   "de": {
     "lang": "de",
-    "entries": 4340,
+    "entries": 380988,
     "shards": 2,
     "pairStats": {
       "zh": {
-        "entries": 52,
-        "dictBytes": 806,
-        "brBytes": 497
+        "entries": 151,
+        "dictBytes": 2175,
+        "brBytes": 1158
       },
       "en": {
-        "entries": 4340,
-        "dictBytes": 303243,
-        "brBytes": 114819
+        "entries": 380988,
+        "dictBytes": 18115871,
+        "brBytes": 4858351
       }
     },
-    "jsonBytes": 304049,
-    "brBytes": 115316,
+    "jsonBytes": 18118046,
+    "brBytes": 4859509,
     "gzBytes": 0
   },
   "fr": {
     "lang": "fr",
-    "entries": 8219,
+    "entries": 8260,
     "shards": 2,
     "pairStats": {
       "zh": {
-        "entries": 64,
-        "dictBytes": 1001,
-        "brBytes": 557
+        "entries": 204,
+        "dictBytes": 2762,
+        "brBytes": 1404
       },
       "en": {
-        "entries": 8219,
-        "dictBytes": 206951,
-        "brBytes": 78018
+        "entries": 8260,
+        "dictBytes": 207449,
+        "brBytes": 78292
       }
     },
-    "jsonBytes": 207952,
-    "brBytes": 78575,
+    "jsonBytes": 210211,
+    "brBytes": 79696,
     "gzBytes": 0
   },
   "it": {
     "lang": "it",
-    "entries": 28251,
+    "entries": 28305,
     "shards": 2,
     "pairStats": {
       "zh": {
-        "entries": 66,
-        "dictBytes": 903,
-        "brBytes": 504
+        "entries": 185,
+        "dictBytes": 2449,
+        "brBytes": 1224
       },
       "en": {
-        "entries": 28251,
-        "dictBytes": 832781,
-        "brBytes": 290014
+        "entries": 28305,
+        "dictBytes": 833419,
+        "brBytes": 290340
       }
     },
-    "jsonBytes": 833684,
-    "brBytes": 290518,
+    "jsonBytes": 835868,
+    "brBytes": 291564,
     "gzBytes": 0
   },
   "es": {
     "lang": "es",
-    "entries": 4497,
+    "entries": 4545,
     "shards": 2,
     "pairStats": {
       "zh": {
-        "entries": 63,
-        "dictBytes": 878,
-        "brBytes": 481
+        "entries": 173,
+        "dictBytes": 2300,
+        "brBytes": 1154
       },
       "en": {
-        "entries": 4497,
-        "dictBytes": 111047,
-        "brBytes": 44357
+        "entries": 4545,
+        "dictBytes": 111601,
+        "brBytes": 44649
       }
     },
-    "jsonBytes": 111925,
-    "brBytes": 44838,
+    "jsonBytes": 113901,
+    "brBytes": 45803,
     "gzBytes": 0
   },
   "ru": {
     "lang": "ru",
-    "entries": 42288,
+    "entries": 42313,
     "shards": 2,
     "pairStats": {
       "zh": {
-        "entries": 73,
-        "dictBytes": 1419,
-        "brBytes": 651
+        "entries": 161,
+        "dictBytes": 2945,
+        "brBytes": 1279
       },
       "en": {
-        "entries": 42288,
-        "dictBytes": 1549406,
-        "brBytes": 470727
+        "entries": 42313,
+        "dictBytes": 1549881,
+        "brBytes": 470963
       }
     },
-    "jsonBytes": 1550825,
-    "brBytes": 471378,
+    "jsonBytes": 1552826,
+    "brBytes": 472242,
     "gzBytes": 0
   }
 }

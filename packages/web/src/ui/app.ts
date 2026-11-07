@@ -2954,8 +2954,9 @@ function renderVocab(main: HTMLElement, sync: () => void): void {
   const pitch = document.createElement("div");
   pitch.className = "muted";
   pitch.innerHTML =
-    `<strong>解锁后你会得到</strong>：把生词本导出成制表符分隔的 TSV 文件，` +
-    `Anki 里选「导入文件 → 制表符分隔」即可建卡，每张卡带单词、释义和原句。<br>` +
+    `<strong>解锁后你会得到</strong>：<b>.apkg 一键导入</b>（生成 Anki 原生卡包，` +
+    `桌面/手机版 Anki 双击导入即建牌组，卡片带单词、释义、原句，自动打语言标签）和` +
+    `<b>制表符分隔 TSV</b>（Anki「导入文件」手动映射字段）。<br>` +
     `<span>永久解锁本站点的全部导出功能，一次购买。JSON 导出始终免费。</span><br>` +
     `<span>如何获得：访问 <a href="https://github.com/hu00yan/interlinear-reader" target="_blank" rel="noopener noreferrer">项目主页</a> 按说明购买获取 License，粘贴到下方校验即可（离线验签，仅存本浏览器）。</span>`;
   const label = document.createElement("label");
@@ -2984,7 +2985,7 @@ function renderVocab(main: HTMLElement, sync: () => void): void {
         message.textContent = LICENSE_UNSUPPORTED;
       } else if (await saveVocabExportLicense(licenseInput.value)) {
         updateLock(true);
-        message.textContent = "License 已校验，TSV 导出已解锁。";
+        message.textContent = "License 已校验，.apkg / TSV 导出已解锁。";
         licenseInput.value = "";
       } else {
         message.textContent = "License 无效或已过期";
@@ -2995,32 +2996,73 @@ function renderVocab(main: HTMLElement, sync: () => void): void {
       validate.disabled = false;
     }
   });
-  tsv.addEventListener("click", async () => {
+  const gatedExport = async (run: () => Promise<void>): Promise<void> => {
     const unlocked = await isVocabExportUnlocked();
     updateLock(unlocked);
+    updateApkgLock(unlocked);
     if (!unlocked) {
       panel.hidden = false;
       message.textContent = (await supportsLicenseVerification())
-        ? "TSV（Anki）为付费功能，请输入 License。JSON 导出永久免费。"
+        ? ".apkg / TSV 导出为付费功能，请输入 License。JSON 导出永久免费。"
         : LICENSE_UNSUPPORTED;
       licenseInput.focus();
       return;
     }
-    // Known status is maintained separately from the saved vocabulary snapshot.
-    const entries = listVocab().map((entry) => ({
-      ...entry,
-      known: isKnown(entry.lang, entry.lemma),
-    }));
-    const blob = new Blob([buildVocabTSV(entries)], {
-      type: "text/tab-separated-values;charset=utf-8",
-    });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "vocab.tsv";
-    a.click();
-    URL.revokeObjectURL(a.href);
-  });
-  row.append(exp, tsv, count);
+    await run();
+  };
+  tsv.addEventListener("click", () =>
+    gatedExport(() => {
+      // Known status is maintained separately from the saved vocabulary snapshot.
+      const entries = listVocab().map((entry) => ({
+        ...entry,
+        known: isKnown(entry.lang, entry.lemma),
+      }));
+      const blob = new Blob([buildVocabTSV(entries)], {
+        type: "text/tab-separated-values;charset=utf-8",
+      });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "vocab.tsv";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      return Promise.resolve();
+    })
+  );
+  // .apkg：Anki 原生卡包（懒加载 sql.js wasm，只在点击后下载，不占首屏）
+  const apkgBtn = document.createElement("button");
+  apkgBtn.type = "button";
+  apkgBtn.setAttribute("data-testid", "export-apkg");
+  const updateApkgLock = (unlocked: boolean): void => {
+    apkgBtn.textContent = unlocked ? "导出 .apkg（Anki）" : "导出 .apkg（Anki）· 需 License";
+    apkgBtn.dataset.unlocked = String(unlocked);
+  };
+  updateApkgLock(false);
+  void isVocabExportUnlocked().then(updateApkgLock);
+  apkgBtn.addEventListener("click", () =>
+    gatedExport(async () => {
+      const s = state.settings;
+      const entries = listVocab()
+        .filter((entry) => entry.gloss)
+        .map((entry) => ({
+          lemma: entry.lemma,
+          lang: entry.lang,
+          gloss: entry.gloss,
+          sentence: entry.sentence,
+        }));
+      const { buildApkgBlob } = await import("../vocab/apkg.ts");
+      const blob = await buildApkgBlob(entries, {
+        langLabel: `${state.book?.lang ?? "en"}→${s.target === "zh" ? "中文" : "EN"}`,
+      });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `vocab-${new Date().toISOString().slice(0, 10)}.apkg`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      state.status = `已导出 .apkg（${entries.length} 条，导入 Anki 后在「Interlinear Reader 生词本」牌组）`;
+      sync();
+    })
+  );
+  row.append(exp, tsv, apkgBtn, count);
   card.append(row, panel);
   main.appendChild(card);
 

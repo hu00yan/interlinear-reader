@@ -63,3 +63,124 @@
 книга	书	book
 язык	语言	language
 год	年	year
+# --- 2026-11-07 扩充：最高频功能词/动词/核心名词（MIT self-curated） ---
+и	和	and
+в	在…里	in
+не	不	not
+на	在…上	on
+я	我	I
+он	他	he
+она	她	she
+они	他们	they
+мы	我们	we
+вы	你们	you
+ты	你	you
+с	和;从	with;from
+к	向	towards
+у	在…旁;有	at;by
+о	关于	about
+же	 же;究竟	indeed;same
+от	从	from
+так	这样	so
+вот	这里	here
+ещё	还;再	still;yet
+уже	已经	already
+или	或者	or
+если	如果	if
+когда	何时	when
+то	那么;那个	then;that
+это	这	this
+этот	这个	this
+всё	所有;全部	all
+весь	整个	whole
+быть	是;存在	to be
+был	曾是	was (m)
+была	曾是	was (f)
+было	曾是	was (n)
+были	曾是	were
+есть	是;有	is;there is
+говорить	说;讲	to speak
+говорю	我说	I speak
+говорит	他说	he speaks
+говорят	他们说	they speak
+сказать	说	to say
+говорил	说过	spoke
+знаю	知道	I know
+знает	知道	knows
+знать	知道	to know
+думать	想;认为	to think
+думаю	我想	I think
+думал	想过	thought
+хотеть	想要	to want
+хочу	我想要	I want
+хочет	想要	wants
+мочь	能够	to be able
+может	能够	can
+мог	能够过	could
+делать	做	to do
+делает	做	does
+делал	做过	did
+сделать	做完	to make
+сделал	做完了	made
+время	时间	time
+день	天;白昼	day
+год	年	year
+годы	年岁	years
+жизнь	生命;生活	life
+рука	手	hand
+часть	部分	part
+дело	事情;事务	matter;deed
+слово	词;话	word
+слов	词	words
+место	地方;位置	place
+право	权利;右	right
+глаз	眼睛	eye
+глаза	眼睛	eyes
+дом	房子;家	house;home
+работа	工作	work
+вопрос	问题	question
+ночь	夜晚	night
+вода	水	water
+земля	土地;地球	earth
+друг	朋友	friend
+подруга	朋友(女)	friend (f)
+мать	母亲	mother
+отец	父亲	father
+сын	儿子	son
+дочь	女儿	daughter
+книга	书	book
+книге	书	book
+женщина	女人	woman
+мужчина	男人	man
+ребёнок	孩子	child
+город	城市	city
+страна	国家	country
+мир	世界;和平	world;peace
+большой	大的	big
+маленький	小的	small
+хороший	好的	good
+хорошая	好的(阴)	good (f)
+новый	新的	new
+старый	老的	old
+свой	自己的	one's own
+один	一	one
+два	二	two
+три	三	three
+много	多	many
+мало	少	few
+всегда	总是	always
+никогда	从不	never
+часто	经常	often
+здесь	这里	here
+там	那里	there
+где	哪里	where
+почему	为什么	why
+потому	因为	because
+каждый	每个	each
+несколько	几个	several
+первый	第一	first
+последний	最后的	last
+сейчас	现在	now
+потом	然后	then
+очень	非常	very
+больше	更多	more

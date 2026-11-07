@@ -68,6 +68,56 @@ export async function annotateParagraphs(
       }
     }
   }
+  // 4) 连字符合成词兜底（mother-in-law / well-known / fr porte-monnaie / es teórico-práctico）：
+  // 整词词典必 miss（词典只收成员），逐段查（每段也过 pack 还原），全部命中才拼合——
+  // 宁缺勿错，拼合释义以 · 分隔。ja 的 -（長音記号等）不适用，跳过。
+  if (lang !== "ja") {
+    const hyphenParts: Array<{ lemma: string; parts: string[] }> = [];
+    const seenPart = new Set<string>();
+    for (const p of out) {
+      for (const t of p.tokens) {
+        if (!t.isWord || t.gloss) continue;
+        const surface = t.surface;
+        if (!/^[\p{L}]+(?:[-‐‑–—][\p{L}]+)+$/u.test(surface)) continue;
+        const parts = surface.split(/[-‐‑–—]/).filter((s) => s.length >= 1);
+        if (parts.length < 2 || parts.length > 4) continue;
+        if (!hyphenParts.some((h) => h.lemma === t.lemma))
+          hyphenParts.push({ lemma: t.lemma, parts });
+        for (const part of parts) seenPart.add(part.toLowerCase());
+      }
+    }
+    if (hyphenParts.length) {
+      const partLemmas = [...seenPart];
+      const partPack = pack;
+      const partResults = await getGlossesWithSource(
+        lang,
+        target,
+        partLemmas.map((s) => partPack.lemmatize(s)),
+        partLemmas
+      );
+      for (const { lemma, parts } of hyphenParts) {
+        const glosses: string[] = [];
+        for (const part of parts) {
+          const r = partResults.get(partPack.lemmatize(part));
+          if (!r?.gloss) {
+            glosses.length = 0;
+            break;
+          }
+          if (!glosses.includes(r.gloss)) glosses.push(r.gloss);
+        }
+        if (glosses.length) {
+          for (const p of out) {
+            for (const t of p.tokens) {
+              if (t.isWord && !t.gloss && t.lemma === lemma) {
+                t.gloss = glosses.join("·");
+                t.glossSource = "dict";
+              }
+            }
+          }
+        }
+      }
+    }
+  }
   return out;
 }
 
